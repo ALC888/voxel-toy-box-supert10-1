@@ -20,7 +20,11 @@ export default async (req: Request, context: Context) => {
     // const {systemContext} = context.params;
     console.log("Received request in lego-gemini function");
     const data = await req.json();
-    const { systemContext, prompt } = data;
+   //Bian Ziling 
+    //update: support either `options` or legacy/new frontend `params`.
+    const { systemContext, prompt, options, params } = data;
+    const generationOptions: GenerationOptions | undefined = options ?? params;
+
     console.log("Received systemContext:", systemContext);
 
     const response = await callGeminiStream(systemContext, prompt);
