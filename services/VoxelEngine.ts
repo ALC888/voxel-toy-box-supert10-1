@@ -40,7 +40,7 @@ export class VoxelEngine {
     // Chen Yanzi
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(CONFIG.BG_COLOR);
-    // 移除fog效果，避免拉远后虚化
+    // Remove fog effect to avoid blurring when zoomed out
     // this.scene.fog = new THREE.Fog(CONFIG.BG_COLOR, 60, 140); // Reduced haze
 
     this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
