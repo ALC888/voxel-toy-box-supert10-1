@@ -13,19 +13,8 @@ async function callGeminiStream(systemContext:string, prompt: string) {
             const response = ai.models.generateContentStream({
 
             model,
-            contents: `
-                    ${systemContext}
-                    
-                    Task: Generate a 3D voxel art model of: "${prompt}".
-                    
-                    Strict Rules:
-                    1. Use approximately 150 to 200 voxels.
-                    2. The model must be centered at x=0, z=0.
-                    3. The bottom of the model must be at y=0 or slightly higher.
-                    4. Ensure the structure is physically plausible (connected).
-                    5. Coordinates should be integers.
-                    
-                    Return ONLY a JSON array of objects.`,
+           //Bian Ziling update: use shared prompt builder so Gemini respects frontend advanced params.
+            contents: getLLMMessageContent(systemContext, prompt, options),
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
