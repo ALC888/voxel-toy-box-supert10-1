@@ -20,3 +20,55 @@ View your app in AI Studio: https://ai.studio/apps/drive/1pF4WKSt5t07yj2fk7sCbL4
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Shared MVP Types
+
+The shared request/response types for frontend-backend integration live in [types.ts](/C:/Users/15925/Documents/New project/voxel-toy-box-supert10-1-main/types.ts).
+
+```ts
+interface MVPRequest {
+  prompt: string;
+}
+
+interface MVPResponse {
+  success: boolean;
+  voxels?: number[];
+  error?: string;
+}
+```
+
+## Gemini Backend Interface
+
+The Netlify backend entry is `/.netlify/functions/lego-gemini`.
+
+Request example:
+
+```json
+{
+  "systemContext": "You are a creative voxel generator.",
+  "prompt": "Build a cute voxel rabbit",
+  "mode": "expert",
+  "options": {
+    "style": "cartoon",
+    "colorScheme": "pastel",
+    "size": "medium",
+    "symmetry": "bilateral"
+  }
+}
+```
+
+Response fields include:
+
+- `success`
+- `voxels`
+- `warnings`
+- `stats`
+- `metadata`
+- `templateMatch`
+- `mode`
+- `usedTwoStage`
+- `intent`
+- `error` and `errorCode` on failure
+
+More backend details are documented in [docs/backend-postprocess.md](/C:/Users/15925/Documents/New project/voxel-toy-box-supert10-1-main/docs/backend-postprocess.md).
+
