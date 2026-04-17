@@ -12,9 +12,48 @@ export enum AppState {
   REBUILDING = 'REBUILDING'
 }
 
+// Bian: align backend generation options with the advanced frontend params.
+export interface GenerationOptions {
+  style?: 'realistic' | 'cartoon' | 'abstract';
+  colorScheme?: 'vibrant' | 'pastel' | 'monochrome' | 'nature';
+  size?: 'small' | 'medium' | 'large';
+  symmetry?: 'none' | 'bilateral' | 'radial';
+}
+
+export type BackendGenerationMode = 'fast' | 'expert';
+
+export interface GenerationStats {
+  voxelCount: number;
+  colorCount: number;
+  dimensions: {
+    width: number;
+    height: number;
+    depth: number;
+  };
+  repaired: boolean;
+  removedVoxelCount?: number;
+}
+
+// Bian: first-stage structured intent for more controllable voxel generation.
+export interface ModelIntent {
+  subject: string;
+  style: NonNullable<GenerationOptions['style']>;
+  colorScheme: NonNullable<GenerationOptions['colorScheme']>;
+  size: NonNullable<GenerationOptions['size']>;
+  symmetry: NonNullable<GenerationOptions['symmetry']>;
+  voxelBudget: number;
+  silhouetteKeywords: string[];
+  structuralRules: string[];
+}
+
 export interface LegoApiCallRequest {
   systemContext: string;
   prompt: string;
+  // Bian: accept advanced frontend controls without breaking the old prompt-only flow.
+  options?: GenerationOptions;
+  params?: GenerationOptions;
+  mode?: BackendGenerationMode | 'quick';
+  useTwoStage?: boolean;
 }
 export interface VoxelData {
   x: number;
@@ -53,4 +92,52 @@ export interface SavedModel {
   name: string;
   data: VoxelData[];
   baseModel?: string;
+}
+
+export interface GenerationMetadata {
+  voxelCount: number;
+  colorCount: number;
+  dimensions: {
+    width: number;
+    height: number;
+    depth: number;
+  };
+  warnings?: string[];
+}
+
+export interface TemplateMatchResult {
+  matched: boolean;
+  templateName?: string;
+  confidence?: number;
+  templateInfo?: string;
+}
+
+export interface VoxelValidationResult {
+  voxels: VoxelData[];
+  warnings: string[];
+  stats: GenerationStats;
+}
+
+export interface BackendGenerationResponse {
+  success: boolean;
+  voxels?: VoxelData[];
+  warnings: string[];
+  stats?: GenerationStats;
+  metadata?: GenerationMetadata;
+  templateMatch?: TemplateMatchResult;
+  mode: BackendGenerationMode;
+  usedTwoStage: boolean;
+  intent?: ModelIntent;
+  error?: string;
+  errorCode?: string;
+}
+
+export interface MVPRequest {
+  prompt: string;
+}
+
+export interface MVPResponse {
+  success: boolean;
+  voxels?: number[];
+  error?: string;
 }
