@@ -20,3 +20,71 @@ View your app in AI Studio: https://ai.studio/apps/drive/1pF4WKSt5t07yj2fk7sCbL4
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Shared MVP Types
+
+The shared request/response types for frontend-backend integration live in [types.ts](/C:/Users/33852/Desktop/voxel-toy-box-supert10-1-main/types.ts).
+
+```ts
+interface MVPRequest {
+  prompt: string;
+}
+
+interface MVPResponse {
+  success: boolean;
+  voxels?: VoxelData[];
+  error?: string;
+}
+```
+
+## Gemini Backend Interface
+
+The Netlify backend entry is `/.netlify/functions/lego-gemini`.
+
+Request example:
+
+```json
+{
+  "systemContext": "You are a creative voxel generator.",
+  "prompt": "Build a cute voxel rabbit",
+  "mode": "expert",
+  "options": {
+    "style": "cartoon",
+    "colorScheme": "pastel",
+    "size": "medium",
+    "symmetry": "bilateral"
+  }
+}
+```
+
+Response fields include:
+
+- `success`
+- `voxels`
+- `warnings`
+- `stats`
+- `metadata`
+- `templateMatch`
+- `mode`
+- `usedTwoStage`
+- `intent`
+- `error` and `errorCode` on failure
+
+More backend details are documented in [docs/backend-postprocess.md](/C:/Users/33852/Desktop/voxel-toy-box-supert10-1-main/docs/backend-postprocess.md).
+
+## Member 2 Integration Notes
+
+Member 2 owns the shared API contract and should coordinate with:
+
+- Member 1: confirm frontend request payload and response field names
+- Member 3: confirm `GenerationOptions` and `ModelIntent` field semantics
+- Member 4: confirm template/database payloads can map to `TemplateMatchResult`
+- Member 5: confirm `/.netlify/functions/lego-gemini` returns the unified backend response shape
+- Member 6: confirm the renderer consumes `VoxelData[]` with numeric `color`
+
+Current unified contract highlights:
+
+- `LegoApiCallRequest` supports `prompt`, `systemContext`, `options`, `params`, `mode`, and `useTwoStage`
+- `BackendGenerationResponse` returns `success`, `voxels`, `warnings`, `stats`, `metadata`, `templateMatch`, `mode`, `usedTwoStage`, `intent`, `error`, and `errorCode`
+- `MVPResponse.voxels` is standardized as `VoxelData[]`
+  

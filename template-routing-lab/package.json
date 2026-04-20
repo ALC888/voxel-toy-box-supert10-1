@@ -1,0 +1,14 @@
+{
+  "name": "template-routing-lab",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && node --experimental-specifier-resolution=node .tmp-test/tests/run-tests.js"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "typescript": "^5.8.3"
+  }
+}
