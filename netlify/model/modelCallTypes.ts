@@ -1,36 +1,39 @@
-import strict from "assert/strict";
-import type { GenerationOptions, ModelIntent } from "@/types";
-// Bian: centralize option-to-rule mapping so every model follows the same controls.
+import type { GenerationOptions, ModelIntent } from '../../types';
+
 const DEFAULT_OPTIONS: Required<GenerationOptions> = {
-  style: "realistic",
-  colorScheme: "vibrant",
-  size: "medium",
-  symmetry: "none",
+  style: 'realistic',
+  colorScheme: 'vibrant',
+  size: 'medium',
+  symmetry: 'none',
 };
 
-const BUDGET_BY_SIZE: Record<NonNullable<GenerationOptions["size"]>, number> = {
+const BUDGET_BY_SIZE: Record<NonNullable<GenerationOptions['size']>, number> = {
   small: 120,
   medium: 200,
   large: 320,
 };
 
-const STYLE_RULES: Record<NonNullable<GenerationOptions["style"]>, string> = {
-  realistic: "Prefer believable proportions, recognizable silhouettes, restrained decoration, and stable structural choices.",
-  cartoon: "Prefer exaggerated silhouette, cute readable proportions, simplified large features, and playful forms.",
-  abstract: "Prefer stylized geometry, bold shape language, simplified symbolism, and artistic silhouette reduction.",
+const STYLE_RULES: Record<NonNullable<GenerationOptions['style']>, string> = {
+  realistic:
+    'Prefer believable proportions, recognizable silhouettes, restrained decoration, and stable structural choices.',
+  cartoon:
+    'Prefer exaggerated silhouette, cute readable proportions, simplified large features, and playful forms.',
+  abstract:
+    'Prefer stylized geometry, bold shape language, simplified symbolism, and artistic silhouette reduction.',
 };
 
-const COLOR_RULES: Record<NonNullable<GenerationOptions["colorScheme"]>, string> = {
-  vibrant: "Use a saturated, high-contrast palette with 3 to 5 coordinated colors.",
-  pastel: "Use soft low-saturation colors with gentle contrast and a clean limited palette.",
-  monochrome: "Use one dominant hue with 1 to 2 close tonal variants.",
-  nature: "Prefer earthy greens, browns, blues, stone, sand, and wood-like natural combinations.",
+const COLOR_RULES: Record<NonNullable<GenerationOptions['colorScheme']>, string> = {
+  vibrant: 'Use a saturated, high-contrast palette with 3 to 5 coordinated colors.',
+  pastel: 'Use soft low-saturation colors with gentle contrast and a clean limited palette.',
+  monochrome: 'Use one dominant hue with 1 to 2 close tonal variants.',
+  nature:
+    'Prefer earthy greens, browns, blues, stone, sand, and wood-like natural combinations.',
 };
 
-const SYMMETRY_RULES: Record<NonNullable<GenerationOptions["symmetry"]>, string> = {
-  none: "Do not force symmetry unless it naturally improves readability.",
-  bilateral: "Prefer left-right symmetry for the main body and major silhouette.",
-  radial: "Prefer rotational balance around a central axis when the subject fits that structure.",
+const SYMMETRY_RULES: Record<NonNullable<GenerationOptions['symmetry']>, string> = {
+  none: 'Do not force symmetry unless it naturally improves readability.',
+  bilateral: 'Prefer left-right symmetry for the main body and major silhouette.',
+  radial: 'Prefer rotational balance around a central axis when the subject fits that structure.',
 };
 
 const normalizeGenerationOptions = (
@@ -55,45 +58,45 @@ const buildFallbackIntent = (
     symmetry: resolvedOptions.symmetry,
     voxelBudget,
     silhouetteKeywords: [
-      "clear overall silhouette",
-      "readable main body",
-      "stable base footprint",
+      'clear overall silhouette',
+      'readable main body',
+      'stable base footprint',
     ],
     structuralRules: [
-      "All major parts must stay connected.",
-      "Avoid isolated floating voxels.",
-      "Keep the model centered around x=0 and z=0.",
-      "Place the lowest supporting voxels at y=0 whenever possible.",
+      'All major parts must stay connected.',
+      'Avoid isolated floating voxels.',
+      'Keep the model centered around x=0 and z=0.',
+      'Place the lowest supporting voxels at y=0 whenever possible.',
     ],
   };
 };
+
 export const getLLMMessageContent = (
   systemContext: string,
   prompt: string,
   options?: GenerationOptions
 ) => {
-  // Bian: preserve a simple prompt path for fast mode when no advanced controls are provided.
   if (!options) {
     return `
-                    ${systemContext}
+${systemContext}
 
-                    Task: Generate a 3D voxel art model of: "${prompt}".
+Task: Generate a 3D voxel art model of: "${prompt}".
 
-                    Strict Rules:
-                    1. Use approximately 150 to 200 voxels. MUST NOT exceed 250 voxels at the maximum.
-                    2. The model must be centered at x=0, z=0.
-                    3. The bottom of the model must be at y=0 or slightly higher.
-                    4. Ensure the structure is physically plausible (connected).
-                    5. Coordinates should be integers.
+Strict Rules:
+1. Use approximately 150 to 200 voxels. MUST NOT exceed 250 voxels at the maximum.
+2. The model must be centered at x=0, z=0.
+3. The bottom of the model must be at y=0 or slightly higher.
+4. Ensure the structure is physically plausible (connected).
+5. Coordinates should be integers.
 
-                    Return ONLY a JSON array of objects with x, y, z, and color properties.
-                 `;
+Return ONLY a JSON array of objects with x, y, z, and color properties.
+`;
   }
 
   const intent = buildFallbackIntent(prompt, options);
 
   return `
-                    ${systemContext}
+${systemContext}
 
 Task: Generate a 3D voxel art model from the following structured intent.
 
@@ -104,7 +107,9 @@ Structured Intent:
 ${JSON.stringify(intent, null, 2)}
 
 Generation Rules:
-1. Target approximately ${intent.voxelBudget} voxels and do not exceed ${intent.voxelBudget + 40} voxels.
+1. Target approximately ${intent.voxelBudget} voxels and do not exceed ${
+    intent.voxelBudget + 40
+  } voxels.
 2. ${STYLE_RULES[intent.style]}
 3. ${COLOR_RULES[intent.colorScheme]}
 4. ${SYMMETRY_RULES[intent.symmetry]}
@@ -116,7 +121,6 @@ Generation Rules:
 `;
 };
 
-// Bian: stage 1 prompt for expert mode, where the model extracts a structured ModelIntent.
 export const getIntentPrompt = (
   systemContext: string,
   prompt: string,
@@ -146,7 +150,6 @@ Requirements:
 `;
 };
 
-// Bian: stage 2 prompt for expert mode, where the model turns ModelIntent into voxel output.
 export const getVoxelPromptFromIntent = (
   systemContext: string,
   intent: ModelIntent
@@ -159,7 +162,9 @@ ModelIntent:
 ${JSON.stringify(intent, null, 2)}
 
 Generation Rules:
-1. Target approximately ${intent.voxelBudget} voxels and do not exceed ${intent.voxelBudget + 40} voxels.
+1. Target approximately ${intent.voxelBudget} voxels and do not exceed ${
+  intent.voxelBudget + 40
+} voxels.
 2. ${STYLE_RULES[intent.style]}
 3. ${COLOR_RULES[intent.colorScheme]}
 4. ${SYMMETRY_RULES[intent.symmetry]}
@@ -171,52 +176,5 @@ Generation Rules:
 10. Coordinates must be integers.
 11. Return ONLY a JSON array of objects with x, y, z, and color properties.
 `;
+
 export const buildModelIntent = buildFallbackIntent;
-export const llmResponseSchema = {
-
-  // type: "Type.ARRAY",
-  type: "array",
-
-  items: {
-    // type: "Type.OBJECT",
-    type: "object",
-
-    properties: {
-      x: { type: "integer" },
-      y: { type: "integer" },
-      z: { type: "integer" },
-      color: { type: "string", description: "Hex color code e.g. #FF5500" }
-    },
-    required: ["x", "y", "z", "color"]
-  },
-  strict: true
-}
-export const modelIntentSchema = {
-  type: "object",
-  properties: {
-    subject: { type: "string" },
-    style: { type: "string", enum: ["realistic", "cartoon", "abstract"] },
-    colorScheme: { type: "string", enum: ["vibrant", "pastel", "monochrome", "nature"] },
-    size: { type: "string", enum: ["small", "medium", "large"] },
-    symmetry: { type: "string", enum: ["none", "bilateral", "radial"] },
-    voxelBudget: { type: "integer" },
-    silhouetteKeywords: {
-      type: "array",
-      items: { type: "string" }
-    },
-    structuralRules: {
-      type: "array",
-      items: { type: "string" }
-    }
-  },
-  required: [
-    "subject",
-    "style",
-    "colorScheme",
-    "size",
-    "symmetry",
-    "voxelBudget",
-    "silhouetteKeywords",
-    "structuralRules"
-  ]
-}
