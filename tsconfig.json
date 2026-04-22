@@ -13,8 +13,7 @@
     "types": [
       "node"
     ],
-    "moduleResolution": "node",
-    
+    "moduleResolution": "node",s
     "allowJs": true,
     "jsx": "react-jsx",
         "baseUrl": ".",
