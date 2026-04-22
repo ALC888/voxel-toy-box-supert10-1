@@ -1,4 +1,13 @@
-import type {
+
+import {
+  GenerationOptions,
+  VoxelData
+} from '../../../types';
+
+import './endpoints/api';
+
+const DEFAULT_SYSTEM_CONTEXT = [
+  import type {
   BackendGenerationResponse,
      GenerationOptions,
     VoxelData
@@ -31,4 +40,13 @@ export async function generateVoxelModel(
   }
 
   return response as BackendGenerationResponse & { voxels: VoxelData[] };
+}
+
+ 
+];
+
+
+export async function generateVoxelData(options: GenerationOptions): Promise<VoxelData> {
+ 
+  return {} as VoxelData;
 }
