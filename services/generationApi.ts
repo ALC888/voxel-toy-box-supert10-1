@@ -1,7 +1,9 @@
-// ✅ 绝对正确的路径
-import type { BackendGenerationResponse, GenerationOptions } from '../types';
-import { VoxelData } from '../types';
-import './endpoints/api';
+import type {
+  BackendGenerationResponse,
+  GenerationOptions,
+  VoxelData,
+} from '../types';
+import api from './endpoints/api';
 
 const DEFAULT_SYSTEM_CONTEXT = [
   'You are a creative voxel art generator.',
@@ -29,8 +31,4 @@ export async function generateVoxelModel(
   }
 
   return response as BackendGenerationResponse & { voxels: VoxelData[] };
-}
-
-export async function generateVoxelData(options: GenerationOptions): Promise<VoxelData> {
-  return {} as VoxelData;
 }
