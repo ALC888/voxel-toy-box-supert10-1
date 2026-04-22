@@ -13,8 +13,7 @@
     "types": [
       "node"
     ],
-    "moduleResolution": "bundler",
-    "isolatedModules": true,
+    "moduleResolution": "node"
     "moduleDetection": "force",
     "allowJs": true,
     "jsx": "react-jsx",
