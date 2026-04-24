@@ -4,7 +4,7 @@ import type {
   GenerationOptions,
   LegoApiCallRequest,
 } from '../types';
-import generateGeminiVoxelResult from '../netlify/model/gemini';
+import {generate} from '../netlify/model/gemini';
 import { inferTemplateMatch } from '../netlify/utils/templateMatcher';
 import {
   calculateMetadataFromVoxels,

@@ -13,9 +13,7 @@
     "types": [
       "node"
     ],
-    "moduleResolution": "bundler",
-    "isolatedModules": true,
-    "moduleDetection": "force",
+    "moduleResolution": "node",
     "allowJs": true,
     "jsx": "react-jsx",
         "baseUrl": ".",
@@ -29,7 +27,6 @@
 
 
     },
-    "allowImportingTsExtensions": true,
     "noEmit": true
   }
 }
