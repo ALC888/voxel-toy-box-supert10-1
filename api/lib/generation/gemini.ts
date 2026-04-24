@@ -4,8 +4,8 @@ import type {
   GenerationOptions,
   ModelIntent,
   VoxelData,
-} from '../../types';
-import { configureOutboundProxyOnce } from '../../api/lib/networkProxy';
+} from '../../../types';
+import { configureOutboundProxyOnce } from '../networkProxy';
 import {
   buildModelIntent,
   getIntentPrompt,

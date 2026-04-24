@@ -4,12 +4,12 @@ import type {
   GenerationOptions,
   LegoApiCallRequest,
 } from '../types';
-import generateGeminiVoxelResult from '../netlify/model/gemini';
-import { inferTemplateMatch } from '../netlify/utils/templateMatcher';
+import generateGeminiVoxelResult from './lib/generation/gemini';
+import { inferTemplateMatch } from './lib/templateMatcher';
 import {
   calculateMetadataFromVoxels,
   validateAndRepairVoxelArray,
-} from '../netlify/utils/voxelPostprocess';
+} from './lib/voxelPostprocess';
 import { saveGenerationRecord } from './lib/saveGeneration';
 import { getDb } from './lib/db';
 

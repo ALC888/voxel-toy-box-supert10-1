@@ -6,6 +6,7 @@
     "useDefineForClassFields": false,
     "skipLibCheck": true,
     "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
     "types": ["node", "vite/client"],
     "jsx": "react-jsx",
     "baseUrl": ".",
@@ -29,20 +30,13 @@
     "services/**/*.ts",
     "services/**/*.tsx",
     "utils/**/*.ts",
-    "utils/**/*.tsx",
-    "netlify/model/gemini.tsx",
-    "netlify/model/modelCallTypes.ts",
-    "netlify/utils/**/*.ts",
-    "netlify/utils/**/*.tsx"
+    "utils/**/*.tsx"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "template-routing-lab",
     "vite.config.ts",
-    "netlify/functions",
-    "netlify/model/openai.tsx",
-    "netlify/model/openrouter.tsx",
     "services/localApi.ts",
     "api/lib/services"
   ]
