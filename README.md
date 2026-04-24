@@ -4,19 +4,100 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# Voxel Toy Box
 
-This contains everything you need to run your app locally.
+Vercel-first voxel generation app with a React frontend, a server-side Gemini API, and Postgres-backed generation logging.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1pF4WKSt5t07yj2fk7sCbL4EK6CO2_2dx
+## Local Development
 
-## Run Locally
+Prerequisites:
+- Node.js 20+
+- PowerShell users should prefer `npm.cmd`
+- Optional local Postgres if you want persistent generation logs
+- Optional `LOCAL_DB_MODE=memory` if you want a local in-memory Postgres-compatible test database
 
-**Prerequisites:**  Node.js
+Setup:
+1. Copy `.env.example` to `.env.local`
+2. Fill in `GEMINI_API_KEY`
+3. Choose one database path for local testing:
+	- Fill in `DATABASE_URL` for a real Postgres instance
+	- Or set `LOCAL_DB_MODE=memory` for the in-memory database used in local connectivity tests
+4. Install dependencies with `npm.cmd install`
 
+Frontend-only dev server:
+```powershell
+npm.cmd run dev
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Full Vercel-style local server:
+```powershell
+npm.cmd run dev:vercel
+```
+
+## First Local Test Runbook
+
+Use this sequence for first-time verification on this machine, then move to Vercel deployment.
+
+1. Prepare `.env.local`
+	- Set `GEMINI_API_KEY` (required)
+	- Keep `DATABASE_URL` optional for first pass
+2. Install dependencies
+	- `npm.cmd install`
+3. Run local full chain first
+	- `npm.cmd run dev` (frontend + local API)
+4. Validate API routing and error visibility
+	- Open the app and trigger one generation request
+	- Confirm failures are explicit in UI if key/quota is invalid
+5. Run static checks before deploy
+	- `npm.cmd run typecheck`
+	- `npm.cmd run build`
+6. Only after local pass, start Vercel-style verification
+	- `npm.cmd run dev:vercel`
+
+## Verification Commands
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run build
+```
+
+## API
+
+Primary backend endpoint:
+```text
+/api/lego-gemini
+```
+
+Debug endpoints:
+```text
+/api/debug/db-health
+/api/debug/generation-logs
+```
+
+## Environment Variables
+
+- `GEMINI_API_KEY`: required for server-side generation
+- `DATABASE_URL`: optional Postgres connection string for persistent generation logs
+- `LOCAL_DB_MODE=memory`: enables the embedded local database when no real Postgres is available
+- `LOCAL_PROXY_URL`: optional explicit outbound proxy for local Node server calls; if omitted on Windows, the app will also try to detect the user-level system proxy
+- `VITE_API_BASE_URL`: optional frontend override, defaults to `/api/`
+
+## Proxy Notes
+
+If Gemini requests fail with network errors such as `fetch failed sending request`, check the local proxy guidance in [harness/PROXY_GUIDE.md](./harness/PROXY_GUIDE.md).
+
+Current local behavior:
+- On Windows, the server will try to auto-detect the user-level system proxy from Internet Settings
+- You can override that behavior explicitly with `LOCAL_PROXY_URL`
+- The proxy is only used for server-side outbound model calls, not for browser-side routing
+
+Current status on this machine:
+- Gemini outbound network access is no longer blocked at transport layer
+- `fetch failed sending request` is treated as a network/proxy issue
+- `API_KEY_INVALID` means network is working and the blocker has moved to key validity
+
+## Notes
+
+- Netlify is no longer the target runtime for this project.
+- Harness docs for task execution and verification live under [harness](./harness).
+  

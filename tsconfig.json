@@ -1,35 +1,49 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "experimentalDecorators": true,
-    "useDefineForClassFields": false,
     "module": "ESNext",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "useDefineForClassFields": false,
     "skipLibCheck": true,
-    "types": [
-      "node"
-    ],
-    "moduleResolution": "bundler",
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "allowJs": true,
+    "moduleResolution": "node",
+    "types": ["node", "vite/client"],
     "jsx": "react-jsx",
-        "baseUrl": ".",
-
+    "baseUrl": ".",
+    "allowSyntheticDefaultImports": true,
     "paths": {
-      "@/*": [
-        "./*"
-      ],
+      "@/*": ["./*"],
       "model/*": ["./model/*"],
-      "utils/*": ["./utils/*"],
-
-
+      "utils/*": ["./utils/*"]
     },
-    "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "*.ts",
+    "*.tsx",
+    "api/**/*.ts",
+    "api/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "docs/**/*.ts",
+    "docs/**/*.tsx",
+    "services/**/*.ts",
+    "services/**/*.tsx",
+    "utils/**/*.ts",
+    "utils/**/*.tsx",
+    "netlify/model/gemini.tsx",
+    "netlify/model/modelCallTypes.ts",
+    "netlify/utils/**/*.ts",
+    "netlify/utils/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "template-routing-lab",
+    "vite.config.ts",
+    "netlify/functions",
+    "netlify/model/openai.tsx",
+    "netlify/model/openrouter.tsx",
+    "services/localApi.ts",
+    "api/lib/services"
+  ]
 }

@@ -138,6 +138,6 @@ export interface MVPRequest {
 
 export interface MVPResponse {
   success: boolean;
-  voxels?: VoxelData[];
+  voxels?: number[];
   error?: string;
 }
