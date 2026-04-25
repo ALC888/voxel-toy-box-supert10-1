@@ -82,6 +82,31 @@ Debug endpoints:
 - `LOCAL_PROXY_URL`: optional explicit outbound proxy for local Node server calls; if omitted on Windows, the app will also try to detect the user-level system proxy
 - `VITE_API_BASE_URL`: optional frontend override, defaults to `/api/`
 
+## Connect Database To Vercel
+
+Use Vercel's Postgres integration and let the platform inject the connection string.
+
+1. Open your Vercel project dashboard.
+2. Go to Storage and add a Postgres database from the Vercel marketplace.
+3. Link the database to this project.
+4. In the Vercel project settings, confirm the injected environment variable exists. The app reads:
+	- `DATABASE_URL`
+	- `POSTGRES_URL`
+	- `POSTGRES_PRISMA_URL`
+5. Redeploy the project so the serverless function can see the new variable.
+6. Verify the connection:
+	- `GET /api/debug/db-health`
+	- `GET /api/debug/generation-logs`
+
+Expected result:
+- `db-health` should report `mode: postgres` and `ok: true`
+- generation requests should include a `databaseReport` field even when Gemini fails
+- if the write fails, the response should still show the health status and the write error message
+
+Local fallback for testing:
+- `LOCAL_DB_MODE=memory` uses the embedded `pg-mem` path when you do not have a live database yet
+- this is useful for development, but it is not the production Vercel path
+
 ## Proxy Notes
 
 If Gemini requests fail with network errors such as `fetch failed sending request`, check the local proxy guidance in [harness/PROXY_GUIDE.md](./harness/PROXY_GUIDE.md).

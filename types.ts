@@ -125,11 +125,20 @@ export interface BackendGenerationResponse {
   stats?: GenerationStats;
   metadata?: GenerationMetadata;
   templateMatch?: TemplateMatchResult;
+  databaseReport?: DatabaseReport;
   mode: BackendGenerationMode;
   usedTwoStage: boolean;
   intent?: ModelIntent;
   error?: string;
   errorCode?: string;
+}
+
+export interface DatabaseReport {
+  health: DatabaseHealthStatus;
+  write: {
+    ok: boolean;
+    message?: string;
+  };
 }
 
 export interface MVPRequest {

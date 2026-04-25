@@ -1,5 +1,5 @@
 import type { GenerationOptions, TemplateMatchResult } from '../../types';
-import { getDb } from './db';
+import { getDb, getDatabaseReport } from './db';
 
 interface SaveGenerationInput {
   prompt: string;
@@ -14,9 +14,16 @@ interface SaveGenerationInput {
 
 export async function saveGenerationRecord(input: SaveGenerationInput) {
   const db = getDb();
+  let writeResult = {
+    ok: true,
+    message: 'Generation log saved successfully.',
+  };
 
   if (!db.insertGenerationLog) {
-    return;
+    return getDatabaseReport(db, {
+      ok: false,
+      message: 'Database client does not support writes.',
+    });
   }
 
   try {
@@ -33,6 +40,12 @@ export async function saveGenerationRecord(input: SaveGenerationInput) {
       created_at: new Date().toISOString(),
     });
   } catch (error) {
+    writeResult = {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Failed to persist generation log.',
+    };
     console.error('Failed to persist generation log.', error);
   }
+
+  return getDatabaseReport(db, writeResult);
 }

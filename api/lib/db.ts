@@ -20,6 +20,14 @@ export type DatabaseHealthStatus = {
   message: string;
 };
 
+export type DatabaseReport = {
+  health: DatabaseHealthStatus;
+  write: {
+    ok: boolean;
+    message?: string;
+  };
+};
+
 export type GenerationLogPayload = {
   prompt: string;
   generation_options: Record<string, unknown>;
@@ -38,6 +46,20 @@ export type DatabaseClient = {
   listGenerationLogs: (limit?: number) => Promise<GenerationLogRecord[]>;
   healthCheck: () => Promise<DatabaseHealthStatus>;
 };
+
+export async function getDatabaseReport(
+  client: DatabaseClient,
+  writeResult?: { ok: boolean; message?: string }
+): Promise<DatabaseReport> {
+  const health = await client.healthCheck();
+  return {
+    health,
+    write: writeResult ?? {
+      ok: false,
+      message: 'No database write attempt was recorded.',
+    },
+  };
+}
 
 const CREATE_TABLE_SQL = `
   create table if not exists generation_logs (

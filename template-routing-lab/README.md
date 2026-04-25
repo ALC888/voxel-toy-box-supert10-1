@@ -68,3 +68,20 @@ npm.cmd run experiment:replay:compare
 - `DATABASE_URL`
 - `POSTGRES_URL`
 - `POSTGRES_PRISMA_URL`
+
+## Vercel 数据库接法
+
+如果你要把模板路由实验也接到 Vercel Postgres，推荐流程是：
+
+1. 在 Vercel 项目里添加 Postgres Storage。
+2. 让 Vercel 注入 `DATABASE_URL` 或 `POSTGRES_URL`。
+3. 把运行环境变量同步到对应部署环境（Preview / Production）。
+4. 重新部署后先跑数据库健康检查，再跑回放脚本。
+5. 如果没有真实数据库，可先用本地内存模式做开发验证，但最终上线前还是要切到 Vercel Postgres。
+
+建议先检查：
+
+```powershell
+npm.cmd run experiment:db:check
+npm.cmd run experiment:replay:compare
+```
