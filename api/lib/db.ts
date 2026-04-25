@@ -1,4 +1,4 @@
-import { Pool, type QueryResultRow } from 'pg';
+import type { QueryResultRow } from 'pg';
 
 export interface GenerationLogRecord extends QueryResultRow {
   id: number;
@@ -81,10 +81,15 @@ const CREATE_INDEX_SQL = `
 `;
 
 let db: DatabaseClient | null = null;
-let pool: Pool | null = null;
+type PoolLike = {
+  query: (sql: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+};
+
+let pool: PoolLike | null = null;
 let schemaReadyPromise: Promise<void> | null = null;
 let embeddedGenerationLogId = 1;
 let embeddedGenerationLogs: GenerationLogRecord[] = [];
+let pgLoadError: string | null = null;
 
 function getDatabaseUrl() {
   return (
@@ -99,7 +104,7 @@ function isEmbeddedDbEnabled() {
   return process.env.LOCAL_DB_MODE === 'memory';
 }
 
-function getPool() {
+async function getPool() {
   if (pool) {
     return pool;
   }
@@ -110,10 +115,35 @@ function getPool() {
     return null;
   }
 
-  pool = new Pool({
-    connectionString,
-    ssl: process.env.POSTGRES_SSL === 'disable' ? false : undefined,
-  });
+  try {
+    const pgModule = (await import('pg')) as {
+      Pool?: new (options: {
+        connectionString: string;
+        ssl?: false | undefined;
+      }) => PoolLike;
+      default?: {
+        Pool?: new (options: {
+          connectionString: string;
+          ssl?: false | undefined;
+        }) => PoolLike;
+      };
+    };
+    const PoolCtor = pgModule.Pool ?? pgModule.default?.Pool;
+
+    if (!PoolCtor) {
+      pgLoadError = 'pg module loaded but Pool export is unavailable.';
+      return null;
+    }
+
+    pool = new PoolCtor({
+      connectionString,
+      ssl: process.env.POSTGRES_SSL === 'disable' ? false : undefined,
+    });
+    pgLoadError = null;
+  } catch (error) {
+    pgLoadError = error instanceof Error ? error.message : 'Failed to load pg module.';
+    return null;
+  }
 
   return pool;
 }
@@ -123,7 +153,7 @@ async function ensureSchemaReady() {
     return schemaReadyPromise;
   }
 
-  const client = getPool();
+  const client = await getPool();
 
   if (!client) {
     return;
@@ -180,10 +210,7 @@ function createEmbeddedClient(): DatabaseClient {
   };
 }
 
-function createSqlClient(
-  client: Pool,
-  mode: 'postgres' | 'embedded'
-): DatabaseClient {
+function createSqlClient(mode: 'postgres' | 'embedded'): DatabaseClient {
   const insertSql = `
     insert into generation_logs (
       prompt,
@@ -202,6 +229,11 @@ function createSqlClient(
   return {
     mode,
     async insertGenerationLog(payload) {
+      const client = await getPool();
+      if (!client) {
+        throw new Error(pgLoadError || 'Postgres client is unavailable.');
+      }
+
       await ensureSchemaReady();
 
       const baseParams = [
@@ -219,8 +251,13 @@ function createSqlClient(
       await client.query(insertSql, baseParams);
     },
     async listGenerationLogs(limit = 10) {
+      const client = await getPool();
+      if (!client) {
+        throw new Error(pgLoadError || 'Postgres client is unavailable.');
+      }
+
       await ensureSchemaReady();
-      const result = await client.query<GenerationLogRecord>(
+      const result = (await client.query(
         `
           select
             id,
@@ -238,11 +275,20 @@ function createSqlClient(
           limit $1
         `,
         [limit]
-      );
+      )) as { rows: GenerationLogRecord[] };
       return result.rows;
     },
     async healthCheck() {
       try {
+        const client = await getPool();
+        if (!client) {
+          return {
+            ok: false,
+            mode,
+            message: pgLoadError || 'Postgres client is unavailable.',
+          };
+        }
+
         await ensureSchemaReady();
         await client.query('select 1');
         return {
@@ -275,12 +321,11 @@ export function getDb(): DatabaseClient {
     return db;
   }
 
-  const client = getPool();
-  if (!client) {
+  if (!getDatabaseUrl()) {
     db = createNoopClient();
     return db;
   }
 
-  db = createSqlClient(client, 'postgres');
+  db = createSqlClient('postgres');
   return db;
 }
