@@ -40,3 +40,31 @@
 - 已完成任务 5 的路由决策基线
 - 已完成任务 6 的日志事件与本地存储适配基线
 - 测试尚未开始实现
+
+## 实验脚本
+
+在 `template-routing-lab` 目录下执行：
+
+1. 内存模式 API 反馈回放（基线）
+
+```powershell
+npm.cmd run experiment:feedback:memory
+```
+
+1. 真实 Postgres 连通性检查
+
+```powershell
+npm.cmd run experiment:db:check
+```
+
+1. 内存模式 vs Postgres 模式对照回放
+
+```powershell
+npm.cmd run experiment:replay:compare
+```
+
+数据库环境变量支持：
+
+- `DATABASE_URL`
+- `POSTGRES_URL`
+- `POSTGRES_PRISMA_URL`

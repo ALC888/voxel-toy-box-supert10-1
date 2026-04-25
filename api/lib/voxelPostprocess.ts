@@ -3,7 +3,7 @@ import type {
   GenerationStats,
   VoxelData,
   VoxelValidationResult,
-} from '@/types';
+} from '../../types';
 
 type RawVoxel = {
   x: number;
@@ -80,7 +80,7 @@ function keepLargestConnectedComponent(voxels: VoxelData[]): {
   const visited = new Set<number>();
   let largestComponent: number[] = [];
 
-  voxels.forEach((startVoxel, startIndex) => {
+  voxels.forEach((_, startIndex) => {
     if (visited.has(startIndex)) {
       return;
     }
@@ -178,6 +178,7 @@ export function validateAndRepairVoxelArray(
   const zs = voxels.map((voxel) => voxel.z);
   const centerX = Math.round((Math.min(...xs) + Math.max(...xs)) / 2);
   const centerZ = Math.round((Math.min(...zs) + Math.max(...zs)) / 2);
+
   if (centerX !== 0 || centerZ !== 0) {
     voxels = voxels.map((voxel) => ({
       ...voxel,
@@ -189,6 +190,7 @@ export function validateAndRepairVoxelArray(
 
   const connected = keepLargestConnectedComponent(voxels);
   voxels = connected.voxels;
+
   if (connected.removedCount > 0) {
     warnings.push(`Removed ${connected.removedCount} disconnected voxels/components.`);
   }
