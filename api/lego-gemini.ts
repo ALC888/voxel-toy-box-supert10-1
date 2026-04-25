@@ -4,13 +4,31 @@ import type {
   GenerationOptions,
   LegoApiCallRequest,
 } from '../types';
-import {generate} from '../netlify/model/gemini';
-import { inferTemplateMatch } from '../netlify/utils/templateMatcher';
+import generateGeminiVoxelResult from './lib/generation/gemini';
+import { inferTemplateMatch } from './lib/templateMatcher';
 import {
   calculateMetadataFromVoxels,
   validateAndRepairVoxelArray,
-} from '../netlify/utils/voxelPostprocess';
+} from './lib/voxelPostprocess';
 import { saveGenerationRecord } from './lib/saveGeneration';
+import { getDb } from './lib/db';
+
+type VercelLikeRequest = {
+  method?: string;
+  body?: LegoApiCallRequest | string | null;
+};
+
+function parseRequestBody(body: VercelLikeRequest['body']): LegoApiCallRequest {
+  if (!body) {
+    return {} as LegoApiCallRequest;
+  }
+
+  if (typeof body === 'string') {
+    return JSON.parse(body) as LegoApiCallRequest;
+  }
+
+  return body;
+}
 
 function resolveMode(
   requestedMode: LegoApiCallRequest['mode'],
@@ -31,7 +49,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const data = req.body as LegoApiCallRequest;
+    const data = parseRequestBody(req.body);
     const { systemContext = '', prompt, options, params, useTwoStage } = data;
     const generationOptions = options ?? params;
 
@@ -88,10 +106,11 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json(response);
   } catch (error) {
     const message = getErrorMessage(error);
+    const fallbackBody = parseRequestBody(req.body);
 
     await saveGenerationRecord({
-      prompt: req.body?.prompt ?? '',
-      options: req.body?.options ?? req.body?.params ?? {},
+      prompt: fallbackBody?.prompt ?? '',
+      options: fallbackBody?.options ?? fallbackBody?.params ?? {},
       success: false,
       voxelCount: 0,
       colorCount: 0,
@@ -111,4 +130,10 @@ export default async function handler(req: any, res: any) {
 
     return res.status(500).json(response);
   }
+}
+
+export async function healthHandler(_req: VercelLikeRequest, res: any) {
+  const db = getDb();
+  const status = await db.healthCheck();
+  return res.status(status.ok ? 200 : 503).json(status);
 }

@@ -1,4 +1,4 @@
-import type { GenerationOptions, ModelIntent } from '../../types';
+import type { GenerationOptions, ModelIntent } from '../../../types';
 
 const DEFAULT_OPTIONS: Required<GenerationOptions> = {
   style: 'realistic',
@@ -37,10 +37,12 @@ const SYMMETRY_RULES: Record<NonNullable<GenerationOptions['symmetry']>, string>
 };
 
 const normalizeGenerationOptions = (
-  options?: GenerationOptions
+  options: GenerationOptions | undefined
 ): Required<GenerationOptions> => ({
-  ...DEFAULT_OPTIONS,
-  ...options,
+  style: options?.style ?? DEFAULT_OPTIONS.style,
+  colorScheme: options?.colorScheme ?? DEFAULT_OPTIONS.colorScheme,
+  size: options?.size ?? DEFAULT_OPTIONS.size,
+  symmetry: options?.symmetry ?? DEFAULT_OPTIONS.symmetry,
 });
 
 const buildFallbackIntent = (
@@ -51,7 +53,7 @@ const buildFallbackIntent = (
   const voxelBudget = BUDGET_BY_SIZE[resolvedOptions.size];
 
   return {
-    subject: prompt.trim(),
+    subject: prompt.trim() || 'voxel sculpture',
     style: resolvedOptions.style,
     colorScheme: resolvedOptions.colorScheme,
     size: resolvedOptions.size,
@@ -100,9 +102,6 @@ ${systemContext}
 
 Task: Generate a 3D voxel art model from the following structured intent.
 
-User Prompt:
-"${prompt}"
-
 Structured Intent:
 ${JSON.stringify(intent, null, 2)}
 
@@ -113,40 +112,43 @@ Generation Rules:
 2. ${STYLE_RULES[intent.style]}
 3. ${COLOR_RULES[intent.colorScheme]}
 4. ${SYMMETRY_RULES[intent.symmetry]}
-5. The model must be centered at x=0, z=0.
-6. The bottom of the model must be at y=0 or slightly higher.
-7. Ensure the structure is physically plausible and connected.
-8. Coordinates must be integers.
-9. Return ONLY a JSON array of objects with x, y, z, and color properties.
+5. Keep the model centered around x=0 and z=0.
+6. Keep the bottom of the model at y=0 or slightly above.
+7. Maintain one connected structure.
+8. Prefer readable silhouette over internal detail.
+9. Coordinates must be integers.
+10. Return ONLY a JSON array of objects with x, y, z, and color properties.
 `;
 };
 
 export const getIntentPrompt = (
   systemContext: string,
   prompt: string,
-  options?: GenerationOptions
+  options: GenerationOptions
 ) => {
   const resolvedOptions = normalizeGenerationOptions(options);
-  const suggestedBudget = BUDGET_BY_SIZE[resolvedOptions.size];
 
   return `
 ${systemContext}
 
-Task: Read the user's request and convert it into a structured ModelIntent for 3D voxel generation.
+Task: Extract a structured ModelIntent for a voxel art model.
 
-User Prompt:
-"${prompt}"
+User prompt:
+${prompt}
 
-Advanced Controls:
+Advanced options:
 ${JSON.stringify(resolvedOptions, null, 2)}
 
 Requirements:
-1. Infer the main subject directly from the user prompt.
-2. Keep style, colorScheme, size, and symmetry aligned with the advanced controls.
-3. Set voxelBudget close to ${suggestedBudget} based on the selected size.
-4. Provide 3 to 6 silhouetteKeywords that describe the main visible shape.
-5. Provide 3 to 6 structuralRules that help a voxel model stay readable, centered, and connected.
-6. Return ONLY valid JSON matching the ModelIntent structure.
+1. Subject should be a short, concrete noun phrase.
+2. Style must be one of realistic, cartoon, or abstract.
+3. Color scheme must match the user's direction.
+4. Size must map to a voxel budget.
+5. Symmetry must reflect the prompt and options.
+6. Silhouette keywords should be short visual descriptors.
+7. Structural rules must emphasize connectivity and legibility.
+
+Return ONLY a JSON object with subject, style, colorScheme, size, symmetry, voxelBudget, silhouetteKeywords, and structuralRules.
 `;
 };
 
@@ -156,7 +158,7 @@ export const getVoxelPromptFromIntent = (
 ) => `
 ${systemContext}
 
-Task: Generate a 3D voxel art model from the following ModelIntent.
+Task: Generate voxel coordinates from the provided ModelIntent.
 
 ModelIntent:
 ${JSON.stringify(intent, null, 2)}
@@ -168,13 +170,12 @@ Generation Rules:
 2. ${STYLE_RULES[intent.style]}
 3. ${COLOR_RULES[intent.colorScheme]}
 4. ${SYMMETRY_RULES[intent.symmetry]}
-5. The model must match the subject and silhouetteKeywords in the ModelIntent.
-6. Follow the structuralRules in the ModelIntent.
-7. The model must be centered at x=0, z=0.
-8. The bottom of the model must be at y=0 or slightly higher.
-9. Ensure the structure is physically plausible and connected.
-10. Coordinates must be integers.
-11. Return ONLY a JSON array of objects with x, y, z, and color properties.
+5. Keep the model centered around x=0 and z=0.
+6. Keep the lowest supporting voxels at y=0.
+7. Maintain one connected structure.
+8. Favor readable silhouette over internal detail.
+9. Coordinates must be integers.
+10. Return ONLY a JSON array of objects with x, y, z, and color properties.
 `;
 
 export const buildModelIntent = buildFallbackIntent;

@@ -1,32 +1,43 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "experimentalDecorators": true,
-    "useDefineForClassFields": false,
     "module": "ESNext",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "useDefineForClassFields": false,
     "skipLibCheck": true,
-    "types": [
-      "node"
-    ],
     "moduleResolution": "node",
-    "allowJs": true,
+    "ignoreDeprecations": "6.0",
+    "types": ["node", "vite/client"],
     "jsx": "react-jsx",
-        "baseUrl": ".",
-
+    "baseUrl": ".",
+    "allowSyntheticDefaultImports": true,
     "paths": {
-      "@/*": [
-        "./*"
-      ],
+      "@/*": ["./*"],
       "model/*": ["./model/*"],
-      "utils/*": ["./utils/*"],
-
-
+      "utils/*": ["./utils/*"]
     },
     "noEmit": true
-  }
+  },
+  "include": [
+    "*.ts",
+    "*.tsx",
+    "api/**/*.ts",
+    "api/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "docs/**/*.ts",
+    "docs/**/*.tsx",
+    "services/**/*.ts",
+    "services/**/*.tsx",
+    "utils/**/*.ts",
+    "utils/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "template-routing-lab",
+    "vite.config.ts",
+    "services/localApi.ts",
+    "api/lib/services"
+  ]
 }

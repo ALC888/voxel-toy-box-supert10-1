@@ -1,4 +1,4 @@
-import type { ModelIntent, TemplateMatchResult } from '@/types';
+import type { ModelIntent, TemplateMatchResult } from '../../types';
 
 const TEMPLATE_KEYWORDS: Record<string, string[]> = {
   Eagle: ['eagle', 'bird', 'hawk', 'falcon'],

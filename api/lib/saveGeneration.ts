@@ -19,15 +19,20 @@ export async function saveGenerationRecord(input: SaveGenerationInput) {
     return;
   }
 
-  await db.insertGenerationLog({
-    prompt: input.prompt,
-    generation_options: input.options,
-    success: input.success,
-    voxel_count: input.voxelCount,
-    color_count: input.colorCount,
-    warnings: input.warnings,
-    template_match: input.templateMatch,
-    error_message: input.error ?? null,
-    created_at: new Date().toISOString(),
-  });
+  try {
+    await db.insertGenerationLog({
+      prompt: input.prompt,
+      generation_options: input.options as Record<string, unknown>,
+      success: input.success,
+      voxel_count: input.voxelCount,
+      color_count: input.colorCount,
+      warnings: input.warnings,
+      template_match:
+        ((input.templateMatch as unknown as Record<string, unknown> | null) ?? null),
+      error_message: input.error ?? null,
+      created_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Failed to persist generation log.', error);
+  }
 }

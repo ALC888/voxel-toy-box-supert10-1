@@ -4,7 +4,8 @@ import type {
   GenerationOptions,
   ModelIntent,
   VoxelData,
-} from '../../types';
+} from '../../../types';
+import { configureOutboundProxyOnce } from '../networkProxy';
 import {
   buildModelIntent,
   getIntentPrompt,
@@ -13,6 +14,8 @@ import {
 } from './modelCallTypes';
 
 const createGeminiClient = () => {
+  configureOutboundProxyOnce();
+
   const apiKey =
     process.env.GEMINI_API_KEY ||
     process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
