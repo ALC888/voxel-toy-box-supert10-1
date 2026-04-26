@@ -39,7 +39,7 @@ npm.cmd run dev:vercel
 Use this sequence for first-time verification on this machine, then move to Vercel deployment.
 
 1. Prepare `.env.local`
-	- Set `GEMINI_API_KEY` (required)
+	- Set `KIMI_API_KEY` (required)
 	- Keep `DATABASE_URL` optional for first pass
 2. Install dependencies
 	- `npm.cmd install`
@@ -113,7 +113,7 @@ Failure reports include stored `error_message`, `warnings`, and the original gen
 
 ## Proxy Notes
 
-If Gemini requests fail with network errors such as `fetch failed sending request`, check the local proxy guidance in [harness/PROXY_GUIDE.md](./harness/PROXY_GUIDE.md).
+If Kimi requests fail with network errors such as `fetch failed sending request`, check the local proxy guidance in [harness/PROXY_GUIDE.md](./harness/PROXY_GUIDE.md).
 
 Current local behavior:
 - On Windows, the server will try to auto-detect the user-level system proxy from Internet Settings
@@ -121,7 +121,7 @@ Current local behavior:
 - The proxy is only used for server-side outbound model calls, not for browser-side routing
 
 Current status on this machine:
-- Gemini outbound network access is no longer blocked at transport layer
+- Kimi outbound network access is no longer blocked at transport layer
 - `fetch failed sending request` is treated as a network/proxy issue
 - `API_KEY_INVALID` means network is working and the blocker has moved to key validity
 

@@ -71,7 +71,7 @@ export const PromptModal: React.FC<PromptModalProps> = ({ isOpen, mode, onClose,
                     {isCreate ? 'New Build' : 'Rebuild blocks'}
                 </h2>
                 <p className={`text-xs font-bold uppercase tracking-wide ${isCreate ? 'text-sky-400' : 'text-amber-400'}`}>
-                    POWERED BY GEMINI 3
+                    POWERED BY KIMI
                 </p>
             </div>
           </div>
