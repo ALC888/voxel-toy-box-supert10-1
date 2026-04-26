@@ -35,7 +35,10 @@ export type GenerationLogPayload = {
 export type DatabaseClient = {
   mode: 'postgres' | 'embedded' | 'noop';
   insertGenerationLog: (payload: GenerationLogPayload) => Promise<void>;
-  listGenerationLogs: (limit?: number) => Promise<GenerationLogRecord[]>;
+  listGenerationLogs: (
+    limit?: number,
+    success?: boolean | undefined
+  ) => Promise<GenerationLogRecord[]>;
   healthCheck: () => Promise<DatabaseHealthStatus>;
 };
 
@@ -233,10 +236,28 @@ function createSqlClient(
         mode === 'embedded' ? [embeddedGenerationLogId++, ...baseParams] : baseParams
       );
     },
-    async listGenerationLogs(limit = 10) {
+    async listGenerationLogs(limit = 10, success?: boolean) {
       await ensureSchemaReady();
-      const result = await client.query<GenerationLogRecord>(
+      const hasSuccessFilter = typeof success === 'boolean';
+      const sql = hasSuccessFilter
+        ? `
+          select
+            id,
+            prompt,
+            generation_options,
+            success,
+            voxel_count,
+            color_count,
+            warnings,
+            template_match,
+            error_message,
+            created_at
+          from generation_logs
+          where success = $1
+          order by created_at desc
+          limit $2
         `
+        : `
           select
             id,
             prompt,
@@ -251,9 +272,9 @@ function createSqlClient(
           from generation_logs
           order by created_at desc
           limit $1
-        `,
-        [limit]
-      );
+        `;
+      const params = hasSuccessFilter ? [success, limit] : [limit];
+      const result = await client.query<GenerationLogRecord>(sql, params);
       return result.rows;
     },
     async healthCheck() {
