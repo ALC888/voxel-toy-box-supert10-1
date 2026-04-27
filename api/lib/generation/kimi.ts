@@ -19,42 +19,96 @@ type KimiJsonEnvelope<T> = {
   intent?: ModelIntent;
 };
 
-function extractVoxelsFromUnknownPayload(payload: unknown): VoxelData[] | null {
-  if (Array.isArray(payload)) {
-    return payload as VoxelData[];
+type JsonRecord = Record<string, unknown>;
+
+function isVoxelLike(value: unknown): value is VoxelData {
+  if (!value || typeof value !== 'object') {
+    return false;
   }
 
-  if (!payload || typeof payload !== 'object') {
+  const record = value as JsonRecord;
+  return (
+    typeof record.x === 'number' &&
+    Number.isFinite(record.x) &&
+    typeof record.y === 'number' &&
+    Number.isFinite(record.y) &&
+    typeof record.z === 'number' &&
+    Number.isFinite(record.z) &&
+    (typeof record.color === 'number' || typeof record.color === 'string')
+  );
+}
+
+function findVoxelArrayDeep(payload: unknown, visited = new Set<unknown>()): VoxelData[] | null {
+  if (!payload || visited.has(payload)) {
     return null;
   }
 
-  const record = payload as Record<string, unknown>;
-
-  if (Array.isArray(record.voxels)) {
-    return record.voxels as VoxelData[];
-  }
-
-  if (Array.isArray(record.result)) {
-    return record.result as VoxelData[];
-  }
-
-  const nestedResult = record.result;
-  if (nestedResult && typeof nestedResult === 'object') {
-    const nestedRecord = nestedResult as Record<string, unknown>;
-    if (Array.isArray(nestedRecord.voxels)) {
-      return nestedRecord.voxels as VoxelData[];
+  if (typeof payload === 'string') {
+    try {
+      const parsed = JSON.parse(payload) as unknown;
+      return findVoxelArrayDeep(parsed, visited);
+    } catch {
+      return null;
     }
   }
 
-  const data = record.data;
-  if (data && typeof data === 'object') {
-    const dataRecord = data as Record<string, unknown>;
-    if (Array.isArray(dataRecord.voxels)) {
-      return dataRecord.voxels as VoxelData[];
+  if (Array.isArray(payload)) {
+    if (payload.length > 0 && payload.every(isVoxelLike)) {
+      return payload as VoxelData[];
+    }
+
+    visited.add(payload);
+    for (const item of payload) {
+      const nested = findVoxelArrayDeep(item, visited);
+      if (nested && nested.length > 0) {
+        return nested;
+      }
+    }
+    return null;
+  }
+
+  if (typeof payload !== 'object') {
+    return null;
+  }
+
+  visited.add(payload);
+  const record = payload as JsonRecord;
+
+  for (const value of Object.values(record)) {
+    const nested = findVoxelArrayDeep(value, visited);
+    if (nested && nested.length > 0) {
+      return nested;
     }
   }
 
   return null;
+}
+
+function extractIntentFromUnknownPayload(payload: unknown): ModelIntent | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const record = payload as JsonRecord;
+
+  const intent = record.intent;
+  if (intent && typeof intent === 'object') {
+    return intent as ModelIntent;
+  }
+
+  const result = record.result;
+  if (result && typeof result === 'object') {
+    const resultRecord = result as JsonRecord;
+    if (resultRecord.intent && typeof resultRecord.intent === 'object') {
+      return resultRecord.intent as ModelIntent;
+    }
+  }
+
+  return null;
+}
+
+function extractVoxelsFromUnknownPayload(payload: unknown): VoxelData[] | null {
+  return findVoxelArrayDeep(payload);
 }
 
 const DEFAULT_KIMI_MODEL = 'moonshot-v1-8k';
@@ -216,7 +270,7 @@ export async function callKimiFastMode(
   prompt: string,
   options?: GenerationOptions
 ): Promise<{ intent: ModelIntent; voxels: VoxelData[] }> {
-  const intent = buildModelIntent(prompt, options);
+  const defaultIntent = buildModelIntent(prompt, options);
   const envelope = await requestKimiJson<unknown>(
     `${getLLMMessageContent(systemContext, prompt, options)}
 
@@ -230,11 +284,15 @@ Return valid JSON in this shape:
   );
 
   const voxels = extractVoxelsFromUnknownPayload(envelope);
-  if (!voxels || voxels.length === 0) {
-    throw new Error('Kimi fast mode returned no voxel payload.');
+  if (voxels && voxels.length > 0) {
+    return { intent: defaultIntent, voxels };
   }
 
-  return { intent, voxels };
+  // Fallback: if fast-mode payload is structurally valid but misses voxels,
+  // recover by generating voxels from an extracted or default intent.
+  const recoveredIntent = extractIntentFromUnknownPayload(envelope) ?? defaultIntent;
+  const recoveredVoxels = await callKimiVoxelFromIntent(systemContext, recoveredIntent);
+  return { intent: recoveredIntent, voxels: recoveredVoxels };
 }
 
 export async function callKimiIntent(
