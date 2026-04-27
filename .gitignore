@@ -27,3 +27,5 @@ dist-ssr
 .netlify
 
 package-lock.json
+.vercel
+.env*.local

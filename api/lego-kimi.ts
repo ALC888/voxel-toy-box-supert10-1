@@ -4,13 +4,13 @@ import type {
   GenerationOptions,
   LegoApiCallRequest,
 } from '../types';
-import generateKimiVoxelResult from './lib/generation/kimi';
-import { inferTemplateMatch } from './lib/templateMatcher';
+import generateKimiVoxelResult from './lib/generation/kimi.js';
+import { inferTemplateMatch } from './lib/templateMatcher.js';
 import {
   calculateMetadataFromVoxels,
   validateAndRepairVoxelArray,
-} from './lib/voxelPostprocess';
-import { saveGenerationRecord } from './lib/saveGeneration';
+} from './lib/voxelPostprocess.js';
+import { saveGenerationRecord } from './lib/saveGeneration.js';
 
 type VercelLikeRequest = {
   method?: string;

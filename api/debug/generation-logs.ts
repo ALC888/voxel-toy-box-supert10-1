@@ -1,4 +1,4 @@
-import { getDb } from '../lib/db';
+import { getDb } from '../lib/db.js';
 
 function parseLimit(value: unknown) {
   const parsed = Number.parseInt(String(value ?? '10'), 10);

@@ -5,13 +5,13 @@ import type {
   ModelIntent,
   VoxelData,
 } from '../../../types';
-import { configureOutboundProxyOnce } from '../networkProxy';
+import { configureOutboundProxyOnce } from '../networkProxy.js';
 import {
   buildModelIntent,
   getIntentPrompt,
   getLLMMessageContent,
   getVoxelPromptFromIntent,
-} from './modelCallTypes';
+} from './modelCallTypes.js';
 
 type KimiJsonEnvelope<T> = {
   result?: T;

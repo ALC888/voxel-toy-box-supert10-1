@@ -228,7 +228,7 @@ function createSqlClient(mode: 'postgres' | 'embedded'): DatabaseClient {
       error_message,
       created_at
     )
-    values ($1, $2, $3::jsonb, $4, $5, $6::jsonb, $7::jsonb, $8, $9)
+    values ($1, $2::jsonb, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9)
   `;
 
   return {

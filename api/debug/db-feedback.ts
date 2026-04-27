@@ -1,4 +1,4 @@
-import { saveGenerationRecord } from '../lib/saveGeneration';
+import { saveGenerationRecord } from '../lib/saveGeneration.js';
 
 type FeedbackBody = {
   prompt?: string;

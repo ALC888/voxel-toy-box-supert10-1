@@ -1,5 +1,5 @@
 import type { GenerationOptions, TemplateMatchResult } from '../../types';
-import { getDatabaseReport, getDb } from './db';
+import { getDatabaseReport, getDb } from './db.js';
 
 interface SaveGenerationInput {
   prompt: string;
