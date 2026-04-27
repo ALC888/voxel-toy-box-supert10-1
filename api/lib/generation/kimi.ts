@@ -49,10 +49,7 @@ function extractTextFromCompletion(completion: OpenAI.Chat.Completions.ChatCompl
     return content;
   }
 
-  return content
-    .map((item) => ('text' in item ? item.text ?? '' : ''))
-    .join('')
-    .trim();
+  return '';
 }
 
 function parseJsonResponse<T>(rawText: string, fallbackMessage: string): T {

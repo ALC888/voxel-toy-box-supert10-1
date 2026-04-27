@@ -15,13 +15,44 @@ async function api<T>(
 
   if (!response.ok) {
     const errorText = await response.text();
+    let parsed:
+      | {
+          error?: string;
+          message?: string;
+          databaseReport?: {
+            health?: { ok?: boolean; mode?: string; message?: string };
+            write?: { ok?: boolean; message?: string };
+          };
+        }
+      | null = null;
 
     try {
-      const parsed = JSON.parse(errorText) as { error?: string };
-      throw new Error(parsed.error || errorText || 'Request failed.');
+      parsed = JSON.parse(errorText) as {
+        error?: string;
+        message?: string;
+        databaseReport?: {
+          health?: { ok?: boolean; mode?: string; message?: string };
+          write?: { ok?: boolean; message?: string };
+        };
+      };
     } catch {
+      parsed = null;
+    }
+
+    if (!parsed) {
       throw new Error(errorText || 'Request failed.');
     }
+
+    const baseMessage = parsed.error || parsed.message || errorText || 'Request failed.';
+    const healthMessage = parsed.databaseReport?.health?.message;
+    const writeMessage = parsed.databaseReport?.write?.message;
+
+    if (healthMessage || writeMessage) {
+      const reportSummary = [healthMessage, writeMessage].filter(Boolean).join(' | ');
+      throw new Error(`${baseMessage} [databaseReport: ${reportSummary}]`);
+    }
+
+    throw new Error(baseMessage);
   }
 
   return response.json();

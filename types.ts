@@ -4,7 +4,7 @@
 */
 
 
-import * as THREE from 'three';
+import type * as THREE from 'three';
 
 export enum AppState {
   STABLE = 'STABLE',
@@ -125,11 +125,26 @@ export interface BackendGenerationResponse {
   stats?: GenerationStats;
   metadata?: GenerationMetadata;
   templateMatch?: TemplateMatchResult;
+  databaseReport?: DatabaseReport;
   mode: BackendGenerationMode;
   usedTwoStage: boolean;
   intent?: ModelIntent;
   error?: string;
   errorCode?: string;
+}
+
+export interface DatabaseHealthStatus {
+  ok: boolean;
+  mode: 'postgres' | 'embedded' | 'noop';
+  message: string;
+}
+
+export interface DatabaseReport {
+  health: DatabaseHealthStatus;
+  write: {
+    ok: boolean;
+    message?: string;
+  };
 }
 
 export interface MVPRequest {
