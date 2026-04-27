@@ -106,23 +106,52 @@ function parseJsonResponse<T>(rawText: string, fallbackMessage: string): T {
     throw new Error(fallbackMessage);
   }
 
-  try {
-    return JSON.parse(rawText) as T;
-  } catch {
-    const fencedMatch = rawText.match(/```json\s*([\s\S]*?)```/i) || rawText.match(/```\s*([\s\S]*?)```/i);
-    if (fencedMatch?.[1]) {
-      return JSON.parse(fencedMatch[1]) as T;
+  const tryParse = (candidate: string): T | null => {
+    if (!candidate.trim()) {
+      return null;
     }
 
-    const firstBrace = rawText.indexOf('{');
-    const lastBrace = rawText.lastIndexOf('}');
-    if (firstBrace >= 0 && lastBrace > firstBrace) {
-      const maybeJson = rawText.slice(firstBrace, lastBrace + 1);
-      return JSON.parse(maybeJson) as T;
+    try {
+      return JSON.parse(candidate) as T;
+    } catch {
+      return null;
     }
+  };
 
-    throw new Error(fallbackMessage);
+  const maybeHeuristic = (candidate: string): T | null => {
+    const normalized = candidate
+      // Common LLM mistake in arrays: object boundaries without commas.
+      .replace(/}\s*{/g, '},{')
+      // Remove trailing commas before closing tokens.
+      .replace(/,\s*([}\]])/g, '$1');
+
+    return tryParse(normalized);
+  };
+
+  const direct = tryParse(rawText) ?? maybeHeuristic(rawText);
+  if (direct) {
+    return direct;
   }
+
+  const fencedMatch = rawText.match(/```json\s*([\s\S]*?)```/i) || rawText.match(/```\s*([\s\S]*?)```/i);
+  if (fencedMatch?.[1]) {
+    const fenced = tryParse(fencedMatch[1]) ?? maybeHeuristic(fencedMatch[1]);
+    if (fenced) {
+      return fenced;
+    }
+  }
+
+  const firstBrace = rawText.indexOf('{');
+  const lastBrace = rawText.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    const maybeJson = rawText.slice(firstBrace, lastBrace + 1);
+    const extracted = tryParse(maybeJson) ?? maybeHeuristic(maybeJson);
+    if (extracted) {
+      return extracted;
+    }
+  }
+
+  throw new Error(fallbackMessage);
 }
 
 async function repairMalformedJsonWithKimi(rawText: string): Promise<string> {
