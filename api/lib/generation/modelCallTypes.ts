@@ -91,7 +91,12 @@ Strict Rules:
 4. Ensure the structure is physically plausible (connected).
 5. Coordinates should be integers.
 
-Return ONLY a JSON array of objects with x, y, z, and color properties.
+Return ONLY a JSON object in this exact envelope shape (no markdown, no explanation):
+{
+  "voxels": [
+    { "x": 0, "y": 0, "z": 0, "color": "#FF5500" }
+  ]
+}
 `;
   }
 
@@ -117,7 +122,12 @@ Generation Rules:
 7. Maintain one connected structure.
 8. Prefer readable silhouette over internal detail.
 9. Coordinates must be integers.
-10. Return ONLY a JSON array of objects with x, y, z, and color properties.
+10. Return ONLY a JSON object in this exact envelope shape (no markdown, no explanation):
+    {
+      "voxels": [
+        { "x": 0, "y": 0, "z": 0, "color": "#FF5500" }
+      ]
+    }
 `;
 };
 
@@ -175,7 +185,12 @@ Generation Rules:
 7. Maintain one connected structure.
 8. Favor readable silhouette over internal detail.
 9. Coordinates must be integers.
-10. Return ONLY a JSON array of objects with x, y, z, and color properties.
+10. Return ONLY a JSON object in this exact envelope shape (no markdown, no explanation):
+    {
+      "voxels": [
+        { "x": 0, "y": 0, "z": 0, "color": "#FF5500" }
+      ]
+    }
 `;
 
 export const buildModelIntent = buildFallbackIntent;

@@ -19,6 +19,44 @@ type KimiJsonEnvelope<T> = {
   intent?: ModelIntent;
 };
 
+function extractVoxelsFromUnknownPayload(payload: unknown): VoxelData[] | null {
+  if (Array.isArray(payload)) {
+    return payload as VoxelData[];
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const record = payload as Record<string, unknown>;
+
+  if (Array.isArray(record.voxels)) {
+    return record.voxels as VoxelData[];
+  }
+
+  if (Array.isArray(record.result)) {
+    return record.result as VoxelData[];
+  }
+
+  const nestedResult = record.result;
+  if (nestedResult && typeof nestedResult === 'object') {
+    const nestedRecord = nestedResult as Record<string, unknown>;
+    if (Array.isArray(nestedRecord.voxels)) {
+      return nestedRecord.voxels as VoxelData[];
+    }
+  }
+
+  const data = record.data;
+  if (data && typeof data === 'object') {
+    const dataRecord = data as Record<string, unknown>;
+    if (Array.isArray(dataRecord.voxels)) {
+      return dataRecord.voxels as VoxelData[];
+    }
+  }
+
+  return null;
+}
+
 const DEFAULT_KIMI_MODEL = 'moonshot-v1-8k';
 
 function createKimiClient() {
@@ -96,7 +134,7 @@ export async function callKimiFastMode(
   options?: GenerationOptions
 ): Promise<{ intent: ModelIntent; voxels: VoxelData[] }> {
   const intent = buildModelIntent(prompt, options);
-  const envelope = await requestKimiJson<KimiJsonEnvelope<VoxelData[]>>(
+  const envelope = await requestKimiJson<unknown>(
     `${getLLMMessageContent(systemContext, prompt, options)}
 
 Return valid JSON in this shape:
@@ -108,8 +146,8 @@ Return valid JSON in this shape:
     'Kimi fast mode returned no voxel payload.'
   );
 
-  const voxels = envelope.voxels ?? envelope.result;
-  if (!voxels || !Array.isArray(voxels)) {
+  const voxels = extractVoxelsFromUnknownPayload(envelope);
+  if (!voxels || voxels.length === 0) {
     throw new Error('Kimi fast mode returned no voxel payload.');
   }
 
@@ -152,7 +190,7 @@ export async function callKimiVoxelFromIntent(
   systemContext: string,
   intent: ModelIntent
 ): Promise<VoxelData[]> {
-  const envelope = await requestKimiJson<KimiJsonEnvelope<VoxelData[]>>(
+  const envelope = await requestKimiJson<unknown>(
     `${getVoxelPromptFromIntent(systemContext, intent)}
 
 Return valid JSON in this shape:
@@ -164,8 +202,8 @@ Return valid JSON in this shape:
     'Kimi voxel stage returned no voxel payload.'
   );
 
-  const voxels = envelope.voxels ?? envelope.result;
-  if (!voxels || !Array.isArray(voxels)) {
+  const voxels = extractVoxelsFromUnknownPayload(envelope);
+  if (!voxels || voxels.length === 0) {
     throw new Error('Kimi voxel stage returned no voxel payload.');
   }
 
