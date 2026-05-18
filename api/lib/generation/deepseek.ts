@@ -113,7 +113,7 @@ function extractVoxelsFromUnknownPayload(payload: unknown): VoxelData[] | null {
   return findVoxelArrayDeep(payload);
 }
 
-const DEFAULT_DEEPSEEK_MODEL = 'deepseekV4-flash';
+const DEFAULT_DEEPSEEK_MODEL = 'deepseek-v4-flash';
 
 function createDeepSeekClient() {
   configureOutboundProxyOnce();
