@@ -2,7 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { URL } from 'node:url';
-import legoKimiHandler from '../api/lego-kimi';
+import legoDeepseekHandler from '../api/lego-deepseek';
 import dbHealthHandler from '../api/debug/db-health';
 import dbFeedbackHandler from '../api/debug/db-feedback';
 import generationLogsHandler from '../api/debug/generation-logs';
@@ -62,7 +62,7 @@ function loadLocalEnv() {
 loadLocalEnv();
 
 const routes = new Map<string, Handler>([
-  ['/api/lego-kimi', legoKimiHandler as Handler],
+  ['/api/lego-deepseek', legoDeepseekHandler as Handler],
   ['/api/debug/db-health', dbHealthHandler as Handler],
   ['/api/debug/db-feedback', dbFeedbackHandler as Handler],
   ['/api/debug/generation-logs', generationLogsHandler as Handler],

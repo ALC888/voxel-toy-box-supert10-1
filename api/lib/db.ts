@@ -187,6 +187,7 @@ async function ensureSchemaReady() {
   schemaReadyPromise = (async () => {
     await client.query(CREATE_TABLE_SQL);
     await client.query(CREATE_INDEX_SQL);
+    await ensureConstraintTableReady();
   })();
 
   return schemaReadyPromise;
@@ -386,6 +387,196 @@ function maskConnectionString(url: string | null): string {
   } catch {
     return '(invalid URL)';
   }
+}
+
+export interface VoxelModelConstraint {
+  id: number;
+  category: string;
+  keywords: string[];
+  min_voxel_count: number;
+  max_voxel_count: number;
+  anatomy_rules: string[];
+  forbidden_patterns: string[];
+  color_palette: string[];
+  priority: number;
+}
+
+const CREATE_CONSTRAINTS_TABLE_SQL = `
+  create table if not exists voxel_model_constraints (
+    id bigserial primary key,
+    category text not null unique,
+    keywords text[] not null,
+    min_voxel_count integer not null,
+    max_voxel_count integer not null,
+    anatomy_rules text[] not null,
+    forbidden_patterns text[] not null,
+    color_palette text[],
+    priority integer default 0,
+    created_at timestamptz not null default now()
+  );
+`;
+
+const CREATE_CONSTRAINTS_INDEX_SQL = `
+  create index if not exists voxel_model_constraints_priority_idx
+  on voxel_model_constraints (priority desc);
+`;
+
+const SEED_CONSTRAINTS_SQL = `
+  insert into voxel_model_constraints
+    (category, keywords, min_voxel_count, max_voxel_count, anatomy_rules, forbidden_patterns, color_palette, priority)
+  values
+    (
+      'animal',
+      array['animal','bird','cat','dog','rabbit','horse','fish','bunny','feline','canine','pet','creature','eagle','fox','penguin','turtle','corgi'],
+      80, 280,
+      array[
+        'Must have a distinct head at the top connected to the body',
+        'Must have a body forming the main mass',
+        'Must have limb-like protrusions (legs, wings, or fins)',
+        'Head must be visibly separate from body (at least 1-block neck or offset)'
+      ],
+      array[
+        'No floating head without a body connection',
+        'No single-block-thick limbs',
+        'No amorphous blob without recognizable animal features'
+      ],
+      array['#ff9955','#ee6633','#cc8844','#554433','#ffcc88','#ffffff','#997755','#dd8855'],
+      10
+    ),
+    (
+      'vehicle',
+      array['car','truck','bus','vehicle','plane','aircraft','boat','ship','helicopter','rocket','spaceship','sedan','firetruck'],
+      60, 260,
+      array[
+        'Must have a main body or chassis',
+        'Must have wheels, wings, or rotors',
+        'Must be horizontally oriented (longer than tall)',
+        'Wheels must be at the bottom touching or near y=0'
+      ],
+      array[
+        'No amorphous blob shape',
+        'No bipedal or animal-like structure',
+        'No vehicle without wheels/wings (unless it is a boat/ship)'
+      ],
+      array['#ff3333','#3366ff','#333333','#cccccc','#ffff00','#ff6600','#ffffff'],
+      10
+    ),
+    (
+      'building',
+      array['castle','house','building','tower','temple','church','palace','fort','structure','skyscraper','lighthouse'],
+      100, 350,
+      array[
+        'Must have a rectangular or polygonal base at y=0',
+        'Must have vertical walls (at least 3 voxels tall)',
+        'Must have a distinct top feature (roof, spire, battlement)',
+        'Must have at least one recognizable architectural element (door, window, arch)'
+      ],
+      array[
+        'No flat single-layer structures',
+        'No organic or animal-like shapes',
+        'No building without walls'
+      ],
+      array['#998877','#ccbbaa','#776655','#aa9977','#ddccbb','#665544','#888888'],
+      8
+    ),
+    (
+      'character',
+      array['robot','human','person','figure','character','hero','villain','soldier','knight','warrior'],
+      100, 300,
+      array[
+        'Must have a head at the top',
+        'Must have a torso below the head',
+        'Must have two arms extending from the torso sides',
+        'Must have two legs extending downward from the torso',
+        'Must be standing upright (taller than wide)'
+      ],
+      array[
+        'No one-block-thick silhouette (use at least 2-block thickness)',
+        'No limbless torso',
+        'No floating body parts'
+      ],
+      array['#ff8866','#3355cc','#ddaa33','#555555','#ee4444','#ffffff','#ccbb99','#333333'],
+      8
+    ),
+    (
+      'plant',
+      array['tree','flower','plant','mushroom','cactus','bush','vegetation','forest'],
+      40, 220,
+      array[
+        'Must have a trunk or stem growing upward from y=0',
+        'Must have a canopy, head, petals, or foliage at the top',
+        'Must be vertical (taller than wide)',
+        'Stem/trunk must be centered under the canopy'
+      ],
+      array[
+        'No asymmetric base without counterbalance',
+        'No overhanging disconnected parts',
+        'No flat ground-cover without vertical structure'
+      ],
+      array['#44aa33','#66cc44','#88aa55','#339922','#55bb33','#774422','#cc6699','#ff8899'],
+      6
+    ),
+    (
+      'object',
+      array['chair','table','desk','bed','lamp','furniture','basket','box','item','tool','sword','weapon','computer','phone','book'],
+      30, 180,
+      array[
+        'Must have a recognizable functional shape',
+        'Must be stable on the ground (flat base or legs at y=0)',
+        'Must have the defining features of the object type'
+      ],
+      array[
+        'No biological or animal body plan',
+        'No floating disconnected parts'
+      ],
+      null,
+      5
+    )
+  on conflict (category) do nothing;
+`;
+
+let constraintsReady = false;
+
+async function ensureConstraintTableReady() {
+  if (constraintsReady) {
+    return;
+  }
+
+  const client = await getPool();
+  if (!client) {
+    return;
+  }
+
+  await client.query(CREATE_CONSTRAINTS_TABLE_SQL);
+  await client.query(CREATE_CONSTRAINTS_INDEX_SQL);
+  await client.query(SEED_CONSTRAINTS_SQL);
+  constraintsReady = true;
+}
+
+export async function getConstraintsForPrompt(
+  prompt: string
+): Promise<VoxelModelConstraint[]> {
+  const client = await getPool();
+  if (!client) {
+    return [];
+  }
+
+  await ensureConstraintTableReady();
+
+  const lowerPrompt = prompt.toLowerCase();
+  const result = (await client.query(
+    `
+    select
+      id, category, keywords, min_voxel_count, max_voxel_count,
+      anatomy_rules, forbidden_patterns, color_palette, priority
+    from voxel_model_constraints
+    order by priority desc
+    `
+  )) as { rows: VoxelModelConstraint[] };
+
+  return result.rows.filter((row) =>
+    row.keywords.some((kw) => lowerPrompt.includes(kw.toLowerCase()))
+  );
 }
 
 export function getDbDiagnostics() {

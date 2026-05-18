@@ -4,7 +4,7 @@ import type {
   GenerationOptions,
   LegoApiCallRequest,
 } from '../types';
-import generateKimiVoxelResult from './lib/generation/kimi.js';
+import generateDeepSeekVoxelResult from './lib/generation/deepseek.js';
 import { inferTemplateMatch } from './lib/templateMatcher.js';
 import {
   calculateMetadataFromVoxels,
@@ -68,7 +68,7 @@ export default async function handler(req: any, res: any) {
     const shouldUseTwoStage = useTwoStage ?? mode === 'expert';
 
     const { voxels: rawVoxels, intent, usedTwoStage } =
-      await generateKimiVoxelResult(
+      await generateDeepSeekVoxelResult(
         systemContext,
         prompt,
         generationOptions,
@@ -121,7 +121,7 @@ export default async function handler(req: any, res: any) {
       success: false,
       warnings: ['The backend request failed before a valid voxel result was produced.'],
       error: message,
-      errorCode: 'KIMI_GENERATION_FAILED',
+      errorCode: 'DEEPSEEK_GENERATION_FAILED',
       databaseReport,
       mode: 'fast',
       usedTwoStage: false,

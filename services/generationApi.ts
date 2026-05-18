@@ -15,7 +15,7 @@ export async function generateVoxelModel(
   prompt: string,
   options: GenerationOptions,
   mode: 'fast' | 'expert',
-  endpoint = 'lego-kimi'
+  endpoint = 'lego-deepseek'
 ): Promise<BackendGenerationResponse & { voxels: VoxelData[] }> {
   const response = await api<BackendGenerationResponse>(endpoint, {
     method: 'POST',

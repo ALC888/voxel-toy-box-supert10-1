@@ -73,23 +73,49 @@ const buildFallbackIntent = (
   };
 };
 
+function formatConstraintBlock(constraintText: string | undefined): string {
+  if (!constraintText) return '';
+  return `
+
+============================================
+HARD CONSTRAINTS — YOU MUST FOLLOW THESE:
+============================================
+${constraintText}
+
+============================================
+`;
+}
+
 export const getLLMMessageContent = (
   systemContext: string,
   prompt: string,
-  options?: GenerationOptions
+  options?: GenerationOptions,
+  constraintText?: string
 ) => {
+  const constraintBlock = formatConstraintBlock(constraintText);
+
   if (!options) {
     return `
 ${systemContext}
 
 Task: Generate a 3D voxel art model of: "${prompt}".
 
-Strict Rules:
-1. Use approximately 150 to 200 voxels. MUST NOT exceed 250 voxels at the maximum.
-2. The model must be centered at x=0, z=0.
-3. The bottom of the model must be at y=0 or slightly higher.
-4. Ensure the structure is physically plausible (connected).
-5. Coordinates should be integers.
+HARD RULES (MUST follow — models that violate these will be REJECTED):
+1. You MUST produce between 80 and 200 voxels. Less than 80 voxels is a FAILURE.
+2. You MUST NOT produce fewer than 80 voxels under ANY circumstance.
+3. The model MUST be centered at x=0, z=0.
+4. The bottom of the model MUST be at y=0 (touching the ground).
+5. The structure MUST be one connected piece — every voxel must connect to the main body.
+6. Coordinates MUST be integers. Do NOT use floats.
+7. The model MUST be 3D — at least 2 blocks thick in every dimension.
+8. The model MUST have a recognizable silhouette for the subject.
+${constraintBlock}
+
+WHAT NOT TO DO (these are FAILURES):
+- DO NOT produce a flat single-layer plate (all voxels at same y).
+- DO NOT produce fewer than 80 voxels — sparse models are rejected.
+- DO NOT produce disconnected floating voxels.
+- DO NOT produce an unrecognizable blob.
 
 Return ONLY a JSON object in this exact envelope shape (no markdown, no explanation):
 {
@@ -110,19 +136,26 @@ Task: Generate a 3D voxel art model from the following structured intent.
 Structured Intent:
 ${JSON.stringify(intent, null, 2)}
 
-Generation Rules:
-1. Target approximately ${intent.voxelBudget} voxels and do not exceed ${
-    intent.voxelBudget + 40
-  } voxels.
-2. ${STYLE_RULES[intent.style]}
-3. ${COLOR_RULES[intent.colorScheme]}
-4. ${SYMMETRY_RULES[intent.symmetry]}
-5. Keep the model centered around x=0 and z=0.
-6. Keep the bottom of the model at y=0 or slightly above.
-7. Maintain one connected structure.
-8. Prefer readable silhouette over internal detail.
-9. Coordinates must be integers.
-10. Return ONLY a JSON object in this exact envelope shape (no markdown, no explanation):
+HARD RULES (MUST follow — models that violate these will be REJECTED):
+1. You MUST target exactly ${intent.voxelBudget} voxels. The absolute minimum is ${Math.max(60, intent.voxelBudget - 40)} voxels.
+2. You MUST NOT exceed ${intent.voxelBudget + 40} voxels.
+3. ${STYLE_RULES[intent.style]}
+4. ${COLOR_RULES[intent.colorScheme]}
+5. ${SYMMETRY_RULES[intent.symmetry]}
+6. The model MUST be centered around x=0 and z=0.
+7. The bottom of the model MUST be at y=0 (touching the ground).
+8. The structure MUST be one connected piece.
+9. The model MUST have a clear, recognizable silhouette.
+10. The model MUST be 3D — at least 2 blocks thick in every dimension.
+11. Coordinates MUST be integers.
+${constraintBlock}
+
+WHAT NOT TO DO (these are FAILURES):
+- DO NOT produce a flat single-layer plate.
+- DO NOT produce fewer than ${Math.max(60, intent.voxelBudget - 40)} voxels.
+- DO NOT produce disconnected parts.
+
+Return ONLY a JSON object in this exact envelope shape (no markdown, no explanation):
     {
       "voxels": [
         { "x": 0, "y": 0, "z": 0, "color": "#FF5500" }
@@ -134,9 +167,11 @@ Generation Rules:
 export const getIntentPrompt = (
   systemContext: string,
   prompt: string,
-  options: GenerationOptions
+  options: GenerationOptions,
+  constraintText?: string
 ) => {
   const resolvedOptions = normalizeGenerationOptions(options);
+  const constraintBlock = formatConstraintBlock(constraintText);
 
   return `
 ${systemContext}
@@ -148,15 +183,16 @@ ${prompt}
 
 Advanced options:
 ${JSON.stringify(resolvedOptions, null, 2)}
+${constraintBlock}
 
 Requirements:
 1. Subject should be a short, concrete noun phrase.
 2. Style must be one of realistic, cartoon, or abstract.
 3. Color scheme must match the user's direction.
-4. Size must map to a voxel budget.
+4. Size must map to a voxel budget: small=120, medium=200, large=320.
 5. Symmetry must reflect the prompt and options.
-6. Silhouette keywords should be short visual descriptors.
-7. Structural rules must emphasize connectivity and legibility.
+6. Silhouette keywords should be short visual descriptors that capture the key recognizable features.
+7. structuralRules MUST include ALL hard constraint anatomy rules from the HARD CONSTRAINTS section above, plus "All major parts must stay connected", "Avoid isolated floating voxels", "Keep the model centered around x=0 and z=0", "Place the lowest supporting voxels at y=0".
 
 Return ONLY a JSON object with subject, style, colorScheme, size, symmetry, voxelBudget, silhouetteKeywords, and structuralRules.
 `;
@@ -164,33 +200,47 @@ Return ONLY a JSON object with subject, style, colorScheme, size, symmetry, voxe
 
 export const getVoxelPromptFromIntent = (
   systemContext: string,
-  intent: ModelIntent
-) => `
+  intent: ModelIntent,
+  constraintText?: string
+) => {
+  const constraintBlock = formatConstraintBlock(constraintText);
+
+  return `
 ${systemContext}
 
 Task: Generate voxel coordinates from the provided ModelIntent.
 
 ModelIntent:
 ${JSON.stringify(intent, null, 2)}
+${constraintBlock}
 
-Generation Rules:
-1. Target approximately ${intent.voxelBudget} voxels and do not exceed ${
-  intent.voxelBudget + 40
-} voxels.
-2. ${STYLE_RULES[intent.style]}
-3. ${COLOR_RULES[intent.colorScheme]}
-4. ${SYMMETRY_RULES[intent.symmetry]}
-5. Keep the model centered around x=0 and z=0.
-6. Keep the lowest supporting voxels at y=0.
-7. Maintain one connected structure.
-8. Favor readable silhouette over internal detail.
-9. Coordinates must be integers.
-10. Return ONLY a JSON object in this exact envelope shape (no markdown, no explanation):
+HARD RULES (MUST follow — models that violate these will be REJECTED):
+1. You MUST produce at least ${Math.max(60, intent.voxelBudget - 40)} voxels. This is a HARD MINIMUM.
+2. You MUST target ${intent.voxelBudget} voxels and NEVER exceed ${intent.voxelBudget + 40} voxels.
+3. ${STYLE_RULES[intent.style]}
+4. ${COLOR_RULES[intent.colorScheme]}
+5. ${SYMMETRY_RULES[intent.symmetry]}
+6. The model MUST be centered around x=0 and z=0.
+7. The lowest supporting voxels MUST be at y=0 (ground level).
+8. Maintain ONE connected structure — every voxel must be reachable from every other.
+9. The model MUST be 3D — at least 2 blocks thick in every dimension.
+10. Coordinates MUST be integers.
+
+${intent.structuralRules.map((rule: string, i: number) => `${i + 11}. ${rule}`).join('\n')}
+
+WHAT NOT TO DO (these are FAILURES):
+- DO NOT produce a flat single-layer plate.
+- DO NOT produce fewer than ${Math.max(60, intent.voxelBudget - 40)} voxels.
+- DO NOT produce disconnected floating voxels.
+- DO NOT produce an unrecognizable blob.
+
+Return ONLY a JSON object in this exact envelope shape (no markdown, no explanation):
     {
       "voxels": [
         { "x": 0, "y": 0, "z": 0, "color": "#FF5500" }
       ]
     }
 `;
+};
 
 export const buildModelIntent = buildFallbackIntent;

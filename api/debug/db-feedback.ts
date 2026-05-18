@@ -48,7 +48,7 @@ export default async function handler(req: any, res: any) {
 
     return res.status(databaseReport.health.ok ? 200 : 503).json({
       success: databaseReport.health.ok,
-      purpose: 'db-feedback-without-kimi',
+      purpose: 'db-feedback-without-deepseek',
       databaseReport,
       recordedFailure: {
         prompt,
@@ -59,7 +59,7 @@ export default async function handler(req: any, res: any) {
     const message = error instanceof Error ? error.message : String(error);
     return res.status(500).json({
       success: false,
-      purpose: 'db-feedback-without-kimi',
+      purpose: 'db-feedback-without-deepseek',
       error: message,
     });
   }

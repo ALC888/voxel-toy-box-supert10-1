@@ -6,6 +6,8 @@ import type {
   VoxelData,
 } from '../../../types';
 import { configureOutboundProxyOnce } from '../networkProxy.js';
+import { getConstraintsForPrompt } from '../db.js';
+import type { VoxelModelConstraint } from '../db.js';
 import {
   buildModelIntent,
   getIntentPrompt,
@@ -13,7 +15,7 @@ import {
   getVoxelPromptFromIntent,
 } from './modelCallTypes.js';
 
-type KimiJsonEnvelope<T> = {
+type DeepSeekJsonEnvelope<T> = {
   result?: T;
   voxels?: VoxelData[];
   intent?: ModelIntent;
@@ -111,24 +113,24 @@ function extractVoxelsFromUnknownPayload(payload: unknown): VoxelData[] | null {
   return findVoxelArrayDeep(payload);
 }
 
-const DEFAULT_KIMI_MODEL = 'moonshot-v1-8k';
+const DEFAULT_DEEPSEEK_MODEL = 'deepseekV4-flash';
 
-function createKimiClient() {
+function createDeepSeekClient() {
   configureOutboundProxyOnce();
 
-  const apiKey = process.env.KIMI_API_KEY || process.env.MOONSHOT_API_KEY;
+  const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
-    throw new Error('Missing KIMI_API_KEY for server-side Kimi calls.');
+    throw new Error('Missing DEEPSEEK_API_KEY for server-side DeepSeek calls.');
   }
 
   return new OpenAI({
     apiKey,
-    baseURL: 'https://api.moonshot.cn/v1',
+    baseURL: 'https://api.deepseek.com/v1',
   });
 }
 
-function getKimiModel() {
-  return process.env.KIMI_MODEL || DEFAULT_KIMI_MODEL;
+function getDeepSeekModel() {
+  return process.env.DEEPSEEK_MODEL || DEFAULT_DEEPSEEK_MODEL;
 }
 
 function extractTextFromCompletion(completion: OpenAI.Chat.Completions.ChatCompletion) {
@@ -249,13 +251,55 @@ function buildDeterministicFallbackVoxels(intent: ModelIntent): VoxelData[] {
   return voxels;
 }
 
-async function requestKimiJson<T>(
+function buildConstraintInjection(
+  constraints: VoxelModelConstraint[]
+): string | undefined {
+  if (!constraints || constraints.length === 0) return undefined;
+
+  const best = constraints[0];
+  const lines: string[] = [];
+
+  lines.push(`CATEGORY: ${best.category.toUpperCase()}`);
+  lines.push('');
+  lines.push('Minimum voxel count: ' + best.min_voxel_count + ' voxels (HARD MINIMUM)');
+  lines.push('Maximum voxel count: ' + best.max_voxel_count + ' voxels (HARD LIMIT)');
+  lines.push('');
+
+  lines.push('ANATOMY REQUIREMENTS (MUST include ALL of these):');
+  for (const rule of best.anatomy_rules) {
+    lines.push('  - ' + rule);
+  }
+  lines.push('');
+
+  lines.push('FORBIDDEN PATTERNS (DO NOT DO any of these):');
+  for (const pattern of best.forbidden_patterns) {
+    lines.push('  - ' + pattern);
+  }
+
+  if (best.color_palette && best.color_palette.length > 0) {
+    lines.push('');
+    lines.push('Recommended color palette: ' + best.color_palette.join(', '));
+  }
+
+  return lines.join('\n');
+}
+
+async function resolveConstraintText(prompt: string): Promise<string | undefined> {
+  try {
+    const constraints = await getConstraintsForPrompt(prompt);
+    return buildConstraintInjection(constraints);
+  } catch {
+    return undefined;
+  }
+}
+
+async function requestDeepSeekJson<T>(
   prompt: string,
   fallbackMessage: string
 ): Promise<T> {
-  const client = createKimiClient();
+  const client = createDeepSeekClient();
   const completion = await client.chat.completions.create({
-    model: getKimiModel(),
+    model: getDeepSeekModel(),
     response_format: { type: 'json_object' },
     messages: [
       {
@@ -271,14 +315,15 @@ async function requestKimiJson<T>(
   return parseJsonResponse<T>(rawText, fallbackMessage);
 }
 
-export async function callKimiFastMode(
+export async function callDeepSeekFastMode(
   systemContext: string,
   prompt: string,
   options?: GenerationOptions
 ): Promise<{ intent: ModelIntent; voxels: VoxelData[] }> {
   const defaultIntent = buildModelIntent(prompt, options);
-  const envelope = await requestKimiJson<unknown>(
-    `${getLLMMessageContent(systemContext, prompt, options)}
+  const constraintText = await resolveConstraintText(prompt);
+  const envelope = await requestDeepSeekJson<unknown>(
+    `${getLLMMessageContent(systemContext, prompt, options, constraintText)}
 
 Return valid JSON in this shape:
 {
@@ -286,7 +331,7 @@ Return valid JSON in this shape:
     { "x": 0, "y": 0, "z": 0, "color": "#FF5500" }
   ]
 }`,
-    'Kimi fast mode returned no voxel payload.'
+    'DeepSeek fast mode returned no voxel payload.'
   );
 
   const voxels = extractVoxelsFromUnknownPayload(envelope);
@@ -300,13 +345,14 @@ Return valid JSON in this shape:
   return { intent: recoveredIntent, voxels: fallbackVoxels };
 }
 
-export async function callKimiIntent(
+export async function callDeepSeekIntent(
   systemContext: string,
   prompt: string,
   options: GenerationOptions
 ): Promise<ModelIntent> {
-  const envelope = await requestKimiJson<KimiJsonEnvelope<ModelIntent>>(
-    `${getIntentPrompt(systemContext, prompt, options)}
+  const constraintText = await resolveConstraintText(prompt);
+  const envelope = await requestDeepSeekJson<DeepSeekJsonEnvelope<ModelIntent>>(
+    `${getIntentPrompt(systemContext, prompt, options, constraintText)}
 
 Return valid JSON in this shape:
 {
@@ -321,23 +367,24 @@ Return valid JSON in this shape:
     "structuralRules": ["Keep all main parts connected."]
   }
 }`,
-    'Kimi intent stage returned no ModelIntent.'
+    'DeepSeek intent stage returned no ModelIntent.'
   );
 
   const intent = envelope.intent ?? envelope.result;
   if (!intent || typeof intent !== 'object') {
-    throw new Error('Kimi intent stage returned no ModelIntent.');
+    throw new Error('DeepSeek intent stage returned no ModelIntent.');
   }
 
   return intent;
 }
 
-export async function callKimiVoxelFromIntent(
+export async function callDeepSeekVoxelFromIntent(
   systemContext: string,
   intent: ModelIntent
 ): Promise<VoxelData[]> {
-  const envelope = await requestKimiJson<unknown>(
-    `${getVoxelPromptFromIntent(systemContext, intent)}
+  const constraintText = await resolveConstraintText(intent.subject);
+  const envelope = await requestDeepSeekJson<unknown>(
+    `${getVoxelPromptFromIntent(systemContext, intent, constraintText)}
 
 Return valid JSON in this shape:
 {
@@ -345,7 +392,7 @@ Return valid JSON in this shape:
     { "x": 0, "y": 0, "z": 0, "color": "#FF5500" }
   ]
 }`,
-    'Kimi voxel stage returned no voxel payload.'
+    'DeepSeek voxel stage returned no voxel payload.'
   );
 
   const voxels = extractVoxelsFromUnknownPayload(envelope);
@@ -356,7 +403,7 @@ Return valid JSON in this shape:
   return voxels;
 }
 
-export async function generateKimiVoxelResult(
+export async function generateDeepSeekVoxelResult(
   systemContext: string,
   prompt: string,
   options: GenerationOptions | undefined,
@@ -365,12 +412,12 @@ export async function generateKimiVoxelResult(
 ): Promise<{ voxels: VoxelData[]; intent: ModelIntent; usedTwoStage: boolean }> {
   if (mode === 'expert' || useTwoStage) {
     const safeOptions = options ?? {};
-    const intent = await callKimiIntent(systemContext, prompt, safeOptions);
-    const voxels = await callKimiVoxelFromIntent(systemContext, intent);
+    const intent = await callDeepSeekIntent(systemContext, prompt, safeOptions);
+    const voxels = await callDeepSeekVoxelFromIntent(systemContext, intent);
     return { voxels, intent, usedTwoStage: true };
   }
 
-  const fastResult = await callKimiFastMode(systemContext, prompt, options);
+  const fastResult = await callDeepSeekFastMode(systemContext, prompt, options);
   return {
     voxels: fastResult.voxels,
     intent: fastResult.intent,
@@ -378,4 +425,4 @@ export async function generateKimiVoxelResult(
   };
 }
 
-export default generateKimiVoxelResult;
+export default generateDeepSeekVoxelResult;
