@@ -1,3 +1,4 @@
+//Changan.Liu
 import type { TemplateRegistryEntry, TemplateSummary } from '../contracts/index.js';
 import { EXPANSION_TEMPLATE_REGISTRY } from './expansionTemplates.js';
 import { SEED_TEMPLATE_REGISTRY } from './seedTemplates.js';

@@ -1,3 +1,4 @@
+//Changan.Liu
 import { closePool, createPostgresPool, ensureTemplateRoutingLogSchema } from './postgresUtils.js';
 import { pathToFileURL } from 'node:url';
 
@@ -11,6 +12,7 @@ export interface PostgresConnectivityReport {
 }
 
 export async function runPostgresConnectivityCheck(): Promise<PostgresConnectivityReport> {
+  //Changan.Liu
   const startedAt = Date.now();
   let pool: ReturnType<typeof createPostgresPool> | null = null;
 
@@ -19,6 +21,7 @@ export async function runPostgresConnectivityCheck(): Promise<PostgresConnectivi
   let canRead = false;
 
   try {
+    //Changan.Liu
     pool = createPostgresPool();
     await pool.query('select 1 as ok');
     await ensureTemplateRoutingLogSchema(pool);
@@ -32,6 +35,7 @@ export async function runPostgresConnectivityCheck(): Promise<PostgresConnectivi
     };
 
     const insertResult = await pool.query<{ id: number }>(
+      //Changan.Liu
       `
         insert into template_routing_log_events (event_type, created_at, payload_json)
         values ($1, $2, $3::jsonb)
@@ -45,6 +49,7 @@ export async function runPostgresConnectivityCheck(): Promise<PostgresConnectivi
 
     if (insertedId) {
       const readResult = await pool.query<{ id: number }>(
+        //Changan.Liu
         `
           select id
           from template_routing_log_events
@@ -56,6 +61,7 @@ export async function runPostgresConnectivityCheck(): Promise<PostgresConnectivi
       canRead = readResult.rows.length === 1;
 
       await pool.query(`delete from template_routing_log_events where id = $1`, [insertedId]);
+      //Changan.Liu
     }
 
     return {

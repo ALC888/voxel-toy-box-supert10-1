@@ -1,3 +1,4 @@
+//Changan.Liu
 import type {
   FeedbackSignal,
   LogEventRepository,
@@ -21,6 +22,7 @@ export interface ApiFeedbackExperimentCase {
 
 export interface ApiFeedbackExperimentOptions {
   cases?: ApiFeedbackExperimentCase[];
+  //Changan.Liu
   repository?: LogEventRepository;
 }
 
@@ -92,6 +94,7 @@ function isEventCollectionStable(
 export async function runApiFeedbackDatabaseExperiment(
   options: ApiFeedbackExperimentOptions = {}
 ): Promise<ApiFeedbackExperimentReport> {
+  //Changan.Liu
   const repository = options.repository ?? new MemoryLogEventRepository();
   const storage = new MemoryLogStorage();
   const logger = new TemplateRoutingLogger(storage);
@@ -130,9 +133,11 @@ export async function runApiFeedbackDatabaseExperiment(
   const storedEvents = logger.listEvents();
 
   for (const event of storedEvents) {
+    //Changan.Liu
     await repository.append(event);
   }
 
+  //Changan.Liu
   const persistedEvents = await repository.list(storedEvents.length);
 
   return {

@@ -1,3 +1,4 @@
+//Changan.Liu
 import type { RouteDecision, FeedbackSignal } from '../contracts/index.js';
 import { pathToFileURL } from 'node:url';
 import {
@@ -5,13 +6,16 @@ import {
   type ApiFeedbackExperimentReport,
 } from './apiFeedbackDatabaseExperiment.js';
 import { MemoryLogEventRepository } from '../logging/memoryLogEventRepository.js';
+//Changan.Liu
 import { VercelPostgresLogRepository } from '../logging/vercelPostgresRepository.js';
 import {
+  //Changan.Liu
   closePool,
   createPostgresPool,
   ensureTemplateRoutingLogSchema,
 } from './postgresUtils.js';
 import {
+  //Changan.Liu
   runPostgresConnectivityCheck,
   type PostgresConnectivityReport,
 } from './postgresConnectivityCheck.js';
@@ -119,6 +123,7 @@ function createRunId() {
 }
 
 export async function runReplayComparison(): Promise<ReplayComparisonReport> {
+  //Changan.Liu
   const dbHealth = await runPostgresConnectivityCheck();
 
   if (!dbHealth.ok) {
@@ -161,6 +166,7 @@ export async function runReplayComparison(): Promise<ReplayComparisonReport> {
   });
 
   const pool = createPostgresPool();
+  //Changan.Liu
 
   try {
     await ensureTemplateRoutingLogSchema(pool);
