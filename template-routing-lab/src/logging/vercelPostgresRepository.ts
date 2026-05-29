@@ -1,3 +1,4 @@
+//Changan.Liu
 import type { LogEventRepository, TemplateRoutingLogEvent } from '../contracts/index.js';
 
 export interface SqlClientLike {
@@ -5,9 +6,11 @@ export interface SqlClientLike {
 }
 
 export class VercelPostgresLogRepository implements LogEventRepository {
+  //Changan.Liu
   constructor(private readonly client: SqlClientLike) {}
 
   async append(event: TemplateRoutingLogEvent): Promise<void> {
+    //Changan.Liu
     await this.client.query(
       `
         insert into template_routing_log_events (event_type, created_at, payload_json)
@@ -18,6 +21,7 @@ export class VercelPostgresLogRepository implements LogEventRepository {
   }
 
   async list(limit = 100): Promise<TemplateRoutingLogEvent[]> {
+    //Changan.Liu
     const result = await this.client.query<{ payload_json: TemplateRoutingLogEvent }>(
       `
         select payload_json
@@ -32,6 +36,7 @@ export class VercelPostgresLogRepository implements LogEventRepository {
   }
 
   async clear(): Promise<void> {
+    //Changan.Liu
     await this.client.query(`delete from template_routing_log_events`);
   }
 }

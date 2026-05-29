@@ -1,3 +1,4 @@
+//Changan.Liu
 import { Pool } from 'pg';
 
 export const CREATE_TEMPLATE_ROUTING_LOG_EVENTS_SQL = `
@@ -20,6 +21,7 @@ export const CREATE_TEMPLATE_ROUTING_LOG_EVENTS_INDEX_CREATED_AT_SQL = `
 `;
 
 export function resolveDatabaseUrl(): string {
+  //Changan.Liu
   const value =
     process.env.DATABASE_URL ||
     process.env.POSTGRES_URL ||
@@ -36,6 +38,7 @@ export function resolveDatabaseUrl(): string {
 }
 
 export function createPostgresPool() {
+  //Changan.Liu
   return new Pool({
     connectionString: resolveDatabaseUrl(),
     ssl: process.env.POSTGRES_SSL === 'disable' ? false : undefined,
@@ -43,11 +46,13 @@ export function createPostgresPool() {
 }
 
 export async function ensureTemplateRoutingLogSchema(pool: Pool): Promise<void> {
+  //Changan.Liu
   await pool.query(CREATE_TEMPLATE_ROUTING_LOG_EVENTS_SQL);
   await pool.query(CREATE_TEMPLATE_ROUTING_LOG_EVENTS_INDEX_TYPE_SQL);
   await pool.query(CREATE_TEMPLATE_ROUTING_LOG_EVENTS_INDEX_CREATED_AT_SQL);
 }
 
 export async function closePool(pool: Pool): Promise<void> {
+  //Changan.Liu
   await pool.end();
 }
