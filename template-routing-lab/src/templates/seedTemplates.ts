@@ -1,3 +1,4 @@
+//Changan.Liu
 import type { TemplateRegistryEntry } from '../contracts/index.js';
 
 export const SEED_TEMPLATE_REGISTRY: TemplateRegistryEntry[] = [

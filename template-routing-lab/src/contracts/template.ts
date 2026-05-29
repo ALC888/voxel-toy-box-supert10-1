@@ -1,3 +1,4 @@
+//Changan.Liu
 export type TemplateSourceType = 'generator' | 'static_voxel' | 'variant_seed';
 
 export type TemplateBaseCategory =
